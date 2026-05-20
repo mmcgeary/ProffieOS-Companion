@@ -1,5 +1,16 @@
+/// <reference types="node" />
+
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseIni, generateIni, type IniSection } from './iniParser';
+
+const fixturesDir = resolve(dirname(fileURLToPath(import.meta.url)), 'fixtures');
+
+function loadFixture(name: string): string {
+  return readFileSync(resolve(fixturesDir, name), 'utf8');
+}
 
 describe('parseIni', () => {
   it('parses basic sections and keys', () => {
@@ -130,5 +141,33 @@ name=Vader
 name=New Preset
 `;
     expect(generateIni(data)).toBe(expected);
+  });
+});
+
+describe('cross-repo profile fixtures', () => {
+  it('roundtrips mhs4_ini fixture with one-button single-blade profile data', () => {
+    const parsed = parseIni(loadFixture('mhs4_ini.ini'));
+    const global = parsed.find((section) => section.name.toLowerCase() === 'global');
+    const firstPreset = parsed.find((section) => section.name.toLowerCase().startsWith('preset'));
+
+    expect(global?.params.num_buttons).toBe('1');
+    expect(firstPreset?.params.style).toBeDefined();
+    expect(firstPreset?.params.accent_style).toBeUndefined();
+
+    const regenerated = generateIni(parsed);
+    expect(parseIni(regenerated)).toEqual(parsed);
+  });
+
+  it('roundtrips mining fixture with two-button two-blade representative data', () => {
+    const parsed = parseIni(loadFixture('mining.ini'));
+    const global = parsed.find((section) => section.name.toLowerCase() === 'global');
+    const firstPreset = parsed.find((section) => section.name.toLowerCase().startsWith('preset'));
+
+    expect(global?.params.num_buttons).toBe('2');
+    expect(firstPreset?.params.accent_style).toBeDefined();
+    expect(firstPreset?.params.accent_speed).toBeDefined();
+
+    const regenerated = generateIni(parsed);
+    expect(parseIni(regenerated)).toEqual(parsed);
   });
 });
