@@ -1,20 +1,46 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 
+type RenderStyle = (styleString: string, timeMs: number, numLeds: number) => number;
+
+interface ProffieEngineInstance {
+  HEAPU8?: Uint8Array;
+  cwrap: (name: string, returnType: string, argTypes: readonly string[]) => RenderStyle;
+}
+
+interface CreateProffieEngineOptions {
+  wasmBinary: ArrayBuffer;
+  print: (text: string) => void;
+  printErr: (text: string) => void;
+}
+
+type CreateProffieEngine = (options: CreateProffieEngineOptions) => Promise<ProffieEngineInstance>;
+
+declare global {
+  interface Window {
+    createProffieEngine?: CreateProffieEngine;
+  }
+}
+
+const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) return error.message;
+  return 'Unknown WASM error';
+};
+
 export const useProffieEngine = () => {
-  const [engine, setEngine] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
-  const renderRef = useRef<any>(null);
+  const [engine, setEngine] = useState<ProffieEngineInstance | null>(null);
+  const [error, setError] = useState<string | null>(() =>
+    window.createProffieEngine ? null : 'WASM glue failed to load',
+  );
+  const renderRef = useRef<RenderStyle | null>(null);
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     console.log('!!! INITIALIZING PROFFIE WASM ENGINE !!!');
-    
-    // @ts-ignore
+
     const create = window.createProffieEngine;
 
     if (!create) {
       console.error('CRITICAL: window.createProffieEngine is MISSING');
-      setError('WASM glue failed to load');
       return;
     }
 
@@ -39,17 +65,17 @@ export const useProffieEngine = () => {
           renderRef.current = instance.cwrap('render_style', 'number', ['string', 'number', 'number']);
           console.log('✓ render_style wrapper created');
           setTimeout(() => setIsReady(true), 250);
-        } catch (e: any) {
-          console.error('✗ Failed to wrap render_style:', e);
-          setError(e.message);
+        } catch (error: unknown) {
+          console.error('✗ Failed to wrap render_style:', error);
+          setError(getErrorMessage(error));
         }
-      } catch (e: any) {
-        console.error('!!! WASM INIT ERROR !!!', e);
-        setError(e.message);
+      } catch (error: unknown) {
+        console.error('!!! WASM INIT ERROR !!!', error);
+        setError(getErrorMessage(error));
       }
     };
 
-    init();
+    void init();
   }, []);
 
   const render = useCallback((styleString: string, timeMs: number, numLeds: number) => {
@@ -71,8 +97,8 @@ export const useProffieEngine = () => {
       
       // Use the actual underlying buffer from the fresh heap reference
       return new Uint8Array(heap.buffer, ptr, numLeds * 3);
-    } catch (e: any) {
-      if (Math.random() < 0.01) console.error('WASM Exception:', e.message);
+    } catch (error: unknown) {
+      if (Math.random() < 0.01) console.error('WASM Exception:', getErrorMessage(error));
       return null;
     }
   }, [engine, isReady]);

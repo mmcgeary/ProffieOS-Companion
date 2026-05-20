@@ -24,6 +24,11 @@ interface ConfigState {
   addLog: (msg: string) => void;
 }
 
+const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) return error.message;
+  return 'Unknown error';
+};
+
 const SAMPLE_INI = `[Global]
 Volume=1500
 ClashThreshold=2.5
@@ -104,9 +109,9 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
         const { loadFromBoard } = get();
         await loadFromBoard();
       }, 500);
-    } catch (err: any) {
-      console.error('Connection error:', err);
-      set({ error: err.message, isLoading: false, isConnected: false });
+    } catch (error: unknown) {
+      console.error('Connection error:', error);
+      set({ error: getErrorMessage(error), isLoading: false, isConnected: false });
     }
   },
 
@@ -127,8 +132,8 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       if (!rawData) throw new Error('No data received from board');
       const parsed = parseIni(rawData);
       set({ sections: parsed, isDirty: false, isLoading: false });
-    } catch (err: any) {
-      set({ error: err.message, isLoading: false });
+    } catch (error: unknown) {
+      set({ error: getErrorMessage(error), isLoading: false });
     }
   },
 
@@ -151,9 +156,9 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
         set({ error: 'Board failed to confirm save. Check SD card and serial connection.', isLoading: false, saveStatus: 'error' });
         setTimeout(() => set({ saveStatus: 'idle' }), 3000);
       }
-    } catch (err: any) {
-      console.error('Final Save Error:', err);
-      set({ error: err.message, isLoading: false, saveStatus: 'error' });
+    } catch (error: unknown) {
+      console.error('Final Save Error:', error);
+      set({ error: getErrorMessage(error), isLoading: false, saveStatus: 'error' });
       setTimeout(() => set({ saveStatus: 'idle' }), 3000);
     }
   },
@@ -199,5 +204,11 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
     }));
   },
 }));
-// @ts-ignore
+
+declare global {
+  interface Window {
+    useConfigStore?: typeof useConfigStore;
+  }
+}
+
 window.useConfigStore = useConfigStore;

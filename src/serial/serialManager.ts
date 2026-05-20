@@ -1,13 +1,32 @@
+interface SerialPortLike {
+  readable: ReadableStream<Uint8Array>;
+  writable: WritableStream<Uint8Array>;
+  open(options: { baudRate: number }): Promise<void>;
+  close(): Promise<void>;
+}
+
+interface NavigatorWithSerial extends Navigator {
+  serial: {
+    requestPort(): Promise<SerialPortLike>;
+  };
+}
+
+const hasSerialSupport = (navigatorObj: Navigator): navigatorObj is NavigatorWithSerial => {
+  return 'serial' in navigatorObj && typeof (navigatorObj as NavigatorWithSerial).serial.requestPort === 'function';
+};
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
 export class SerialManager {
-  private port: any | null = null;
-  private reader: any | null = null;
-  private writer: any | null = null;
+  private port: SerialPortLike | null = null;
+  private reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
+  private writer: WritableStreamDefaultWriter<Uint8Array> | null = null;
   private decoder = new TextDecoder();
   private encoder = new TextEncoder();
   private onLineReceived: ((line: string) => void) | null = null;
 
   async connect() {
-    if (!('serial' in navigator)) {
+    if (!hasSerialSupport(navigator)) {
       throw new Error('WebSerial not supported in this browser. Use Chrome or Edge.');
     }
 
@@ -19,7 +38,6 @@ export class SerialManager {
       }
     }
 
-    // @ts-ignore
     this.port = await navigator.serial.requestPort();
     await this.port.open({ baudRate: 115200 });
 
@@ -77,17 +95,41 @@ export class SerialManager {
   }
 
   async readConfig(): Promise<string> {
-    if (!this.writer) throw new Error('Not connected');
+    const writer = this.writer;
+    if (!writer) throw new Error('Not connected');
     console.log('[Serial] Requesting config read...');
 
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       let configBuffer = '';
       let capturing = false;
+      let settled = false;
+      let timeout: ReturnType<typeof setTimeout> | undefined;
 
-      const timeout = setTimeout(() => {
+      const clearState = () => {
         this.onLineReceived = null;
+        if (timeout) {
+          clearTimeout(timeout);
+          timeout = undefined;
+        }
+      };
+
+      const finishResolve = (config: string) => {
+        if (settled) return;
+        settled = true;
+        clearState();
+        resolve(config);
+      };
+
+      const finishReject = (error: unknown) => {
+        if (settled) return;
+        settled = true;
+        clearState();
+        reject(error instanceof Error ? error : new Error(String(error)));
+      };
+
+      timeout = setTimeout(() => {
         console.error('[Serial] Read timeout reached after 10s');
-        reject(new Error('Read timeout'));
+        finishReject(new Error('Read timeout'));
       }, 10000);
 
       this.onLineReceived = (line) => {
@@ -98,10 +140,8 @@ export class SerialManager {
           return;
         }
         if (line.includes('---END_INI---')) {
-          this.onLineReceived = null;
-          clearTimeout(timeout);
           console.log('[Serial] Handshake: END_INI found');
-          resolve(configBuffer.trim());
+          finishResolve(configBuffer.trim());
           return;
         }
         if (capturing) {
@@ -109,46 +149,71 @@ export class SerialManager {
         }
       };
 
-      await this.writer.write(this.encoder.encode('READ_INI\n'));
+      void writer.write(this.encoder.encode('READ_INI\n')).catch((error: unknown) => {
+        console.error('[Serial] Failed to send READ_INI command:', error);
+        finishReject(error);
+      });
     });
   }
 
   async writeConfig(content: string): Promise<boolean> {
-    if (!this.writer) throw new Error('Not connected');
+    const writer = this.writer;
+    if (!writer) throw new Error('Not connected');
     
-    return new Promise(async (resolve) => {
-      const timeout = setTimeout(() => {
+    const streamContent = async () => {
+      const lines = content.split('\n');
+      for (const rawLine of lines) {
+        const line = rawLine.trim();
+        if (!line) continue;
+        await writer.write(this.encoder.encode(`${line}\n`));
+        await sleep(50);
+      }
+      await writer.write(this.encoder.encode('---END_INI---\n'));
+    };
+
+    return new Promise((resolve) => {
+      let settled = false;
+      let timeout: ReturnType<typeof setTimeout> | undefined;
+
+      const finish = (result: boolean) => {
+        if (settled) return;
+        settled = true;
         this.onLineReceived = null;
-        resolve(false);
+        if (timeout) {
+          clearTimeout(timeout);
+          timeout = undefined;
+        }
+        resolve(result);
+      };
+
+      timeout = setTimeout(() => {
+        finish(false);
       }, 15000);
 
-      this.onLineReceived = async (line) => {
+      this.onLineReceived = (line) => {
         if (line.includes('READY_FOR_INI')) {
           console.log('Board READY, streaming...');
-          const lines = content.split('\n');
-          for (const l of lines) {
-            if (!l.trim()) continue;
-            await this.writer.write(this.encoder.encode(l.trim() + '\n'));
-            await new Promise(r => setTimeout(r, 50));
-          }
-          await this.writer.write(this.encoder.encode('---END_INI---\n'));
+          void streamContent().catch((error: unknown) => {
+            console.error('[Serial] Failed while streaming config:', error);
+            finish(false);
+          });
           return;
         }
         
         if (line.includes('SAVE_OK')) {
-          this.onLineReceived = null;
-          clearTimeout(timeout);
-          resolve(true);
+          finish(true);
+          return;
         }
 
         if (line.toLowerCase().includes('error') || line.includes('SAVE_FAIL')) {
-          this.onLineReceived = null;
-          clearTimeout(timeout);
-          resolve(false);
+          finish(false);
         }
       };
 
-      await this.writer.write(this.encoder.encode('WRITE_INI\n'));
+      void writer.write(this.encoder.encode('WRITE_INI\n')).catch((error: unknown) => {
+        console.error('[Serial] Failed to send WRITE_INI command:', error);
+        finish(false);
+      });
     });
   }
 }
