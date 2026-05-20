@@ -148,10 +148,12 @@ describe('cross-repo profile fixtures', () => {
   it('roundtrips mhs4_ini fixture with one-button single-blade profile data', () => {
     const parsed = parseIni(loadFixture('mhs4_ini.ini'));
     const global = parsed.find((section) => section.name.toLowerCase() === 'global');
-    const firstPreset = parsed.find((section) => section.name.toLowerCase().startsWith('preset'));
+    const presets = parsed.filter((section) => section.name.toLowerCase().startsWith('preset'));
+    const [firstPreset] = presets;
 
     expect(global?.params.num_buttons).toBe('1');
-    expect(firstPreset?.params.style).toBeDefined();
+    expect(presets).toHaveLength(1);
+    expect(firstPreset?.params.style).toBe('standard');
     expect(firstPreset?.params.accent_style).toBeUndefined();
 
     const regenerated = generateIni(parsed);
@@ -161,11 +163,16 @@ describe('cross-repo profile fixtures', () => {
   it('roundtrips mining fixture with two-button two-blade representative data', () => {
     const parsed = parseIni(loadFixture('mining.ini'));
     const global = parsed.find((section) => section.name.toLowerCase() === 'global');
-    const firstPreset = parsed.find((section) => section.name.toLowerCase().startsWith('preset'));
+    const presets = parsed.filter((section) => section.name.toLowerCase().startsWith('preset'));
+    const [firstPreset, secondPreset] = presets;
 
     expect(global?.params.num_buttons).toBe('2');
-    expect(firstPreset?.params.accent_style).toBeDefined();
-    expect(firstPreset?.params.accent_speed).toBeDefined();
+    // NUM_BLADES is comment-only fixture metadata, so parser coverage uses preset-level accent fields as a boundary check.
+    expect(presets).toHaveLength(2);
+    expect(firstPreset?.params.accent_style).toBe('static');
+    expect(firstPreset?.params.accent_speed).toBe('1000');
+    expect(secondPreset?.params.accent_style).toBe('pulse');
+    expect(secondPreset?.params.accent_speed).toBe('1200');
 
     const regenerated = generateIni(parsed);
     expect(parseIni(regenerated)).toEqual(parsed);
