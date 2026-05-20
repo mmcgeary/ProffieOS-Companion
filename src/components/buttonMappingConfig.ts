@@ -3,7 +3,7 @@ export type SlotOption = {
   label: string;
 };
 
-export const BUTTON_SLOTS: SlotOption[] = [
+export const BUTTON_SLOTS: readonly SlotOption[] = [
   { id: 0, label: 'Power Click' },
   { id: 1, label: 'Power Long Click' },
   { id: 2, label: 'Power Hold' },
@@ -40,7 +40,7 @@ export const BUTTON_SLOTS: SlotOption[] = [
   { id: 33, label: 'Power Mod Twist' },
 ];
 
-export const BUTTON_ACTIONS = [
+export const BUTTON_ACTIONS: readonly string[] = [
   'none',
   'on',
   'off',
@@ -73,7 +73,9 @@ export const BUTTON_ACTIONS = [
   'lockup_or_drag',
 ] as const;
 
-const BUTTON_ACTION_SET = new Set<string>(BUTTON_ACTIONS);
+const BUTTON_ACTION_LOOKUP = new Map<string, string>(
+  BUTTON_ACTIONS.map((action) => [action.toLowerCase(), action]),
+);
 
 export const getButtonSlotAction = (
   params: Record<string, string> | undefined,
@@ -83,5 +85,6 @@ export const getButtonSlotAction = (
   if (!value) {
     return 'none';
   }
-  return BUTTON_ACTION_SET.has(value) ? value : 'none';
+
+  return BUTTON_ACTION_LOOKUP.get(value.toLowerCase()) ?? 'none';
 };

@@ -90,4 +90,9 @@ describe('buttonMappingConfig', () => {
     expect(getButtonSlotAction({ slot_9: 'blast' }, 9)).toBe('blast');
     expect(getButtonSlotAction({ slot_4: 'enter_color_change' }, 4)).toBe('enter_color_change');
   });
+
+  it('accepts valid action values case-insensitively', () => {
+    expect(getButtonSlotAction({ slot_9: 'BLAST' }, 9)).toBe('blast');
+    expect(getButtonSlotAction({ slot_4: 'EnTeR_CoLoR_ChAnGe' }, 4)).toBe('enter_color_change');
+  });
 });
