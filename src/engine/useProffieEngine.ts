@@ -28,9 +28,10 @@ const getErrorMessage = (error: unknown): string => {
 
 export const useProffieEngine = () => {
   const [engine, setEngine] = useState<ProffieEngineInstance | null>(null);
-  const [error, setError] = useState<string | null>(() =>
-    window.createProffieEngine ? null : 'WASM glue failed to load',
-  );
+  const [error, setError] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return window.createProffieEngine ? null : 'WASM glue failed to load';
+  });
   const renderRef = useRef<RenderStyle | null>(null);
   const [isReady, setIsReady] = useState(false);
 
