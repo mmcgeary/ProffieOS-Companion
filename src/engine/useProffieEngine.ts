@@ -65,6 +65,7 @@ export const useProffieEngine = () => {
         try {
           renderRef.current = instance.cwrap('render_style', 'number', ['string', 'number', 'number']);
           console.log('✓ render_style wrapper created');
+          setError(null);
           setTimeout(() => setIsReady(true), 250);
         } catch (error: unknown) {
           console.error('✗ Failed to wrap render_style:', error);

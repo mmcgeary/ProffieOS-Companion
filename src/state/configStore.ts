@@ -211,4 +211,6 @@ declare global {
   }
 }
 
-window.useConfigStore = useConfigStore;
+if (typeof window !== 'undefined') {
+  window.useConfigStore = useConfigStore;
+}
