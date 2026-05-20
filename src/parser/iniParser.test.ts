@@ -74,7 +74,7 @@ Key=Value
 
 describe('generateIni', () => {
   it('generates basic sections and keys', () => {
-    const data = [
+    const data: IniSection[] = [
       {
         name: 'Global',
         params: {
@@ -93,25 +93,42 @@ describe('generateIni', () => {
     const expected = `[Global]
 Version=1.0
 Name=ProffieOS
-
-[Preset]
+[preset1]
 Name=Default
 Style=Classic
 `;
-    expect(generateIni(data as any as IniSection[])).toBe(expected);
+    expect(generateIni(data)).toBe(expected);
   });
 
-  it('generates multiple sections with same name', () => {
-    const data = [
-      { name: 'Preset', params: { Name: 'One' } },
-      { name: 'Preset', params: { Name: 'Two' } },
+  it('numbers repeated preset sections for firmware compatibility', () => {
+    const data: IniSection[] = [
+      { name: 'preset', params: { Name: 'One' } },
+      { name: 'preset', params: { Name: 'Two' } },
     ];
-    const expected = `[Preset]
+    const expected = `[preset1]
 Name=One
-
-[Preset]
+[preset2]
 Name=Two
 `;
-    expect(generateIni(data as any as IniSection[])).toBe(expected);
+    expect(generateIni(data)).toBe(expected);
+  });
+
+  it('renumbers mixed preset section names without collisions', () => {
+    const data: IniSection[] = [
+      { name: 'global', params: { volume: '80' } },
+      { name: 'preset1', params: { name: 'Kestis' } },
+      { name: 'preset2', params: { name: 'Vader' } },
+      { name: 'preset', params: { name: 'New Preset' } },
+    ];
+    const expected = `[global]
+volume=80
+[preset1]
+name=Kestis
+[preset2]
+name=Vader
+[preset3]
+name=New Preset
+`;
+    expect(generateIni(data)).toBe(expected);
   });
 });

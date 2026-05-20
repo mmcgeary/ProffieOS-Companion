@@ -37,7 +37,7 @@ export function generateIni(data: IniSection[]): string {
   let presetCount = 1;
   for (let i = 0; i < data.length; i++) {
     const section = data[i];
-    if (section.name.toLowerCase() === 'preset') {
+    if (section.name.toLowerCase().startsWith('preset')) {
       result += `[preset${presetCount}]\n`;
       presetCount++;
     } else {
