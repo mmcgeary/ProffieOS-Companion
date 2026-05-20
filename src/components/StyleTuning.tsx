@@ -1,6 +1,30 @@
 import React from 'react';
 import { useConfigStore } from '../state/configStore';
 import { Sliders, Thermometer, Wind, Zap, ZapOff, Activity, Layers, Repeat, Sun, Flame } from 'lucide-react';
+import { STYLE_TUNING_ARGS, getStyleTuningValue, type StyleTuningKey } from './styleTuningConfig';
+
+const TUNING_ARG_ICONS: Record<StyleTuningKey, React.ReactNode> = {
+  ignition_time: <Zap size={16} />,
+  retraction_time: <ZapOff size={16} />,
+  flicker_depth: <Activity size={16} />,
+  flicker_speed: <Wind size={16} />,
+  stripe_width: <Layers size={16} />,
+  stripe_speed: <Repeat size={16} />,
+  motion_gain: <Activity size={16} />,
+  noise_mix: <Activity size={16} />,
+  base_contrast: <Sliders size={16} />,
+  pulse_rate: <Repeat size={16} />,
+  pulse_depth: <Activity size={16} />,
+  strobe_freq: <Zap size={16} />,
+  strobe_ms: <ZapOff size={16} />,
+  drift_rate: <Wind size={16} />,
+  warm_shift: <Thermometer size={16} />,
+  jitter_amount: <Activity size={16} />,
+  spark_mix: <Sun size={16} />,
+  heat_rand: <Flame size={16} />,
+  fire_cooling: <Thermometer size={16} />,
+  rainbow_speed: <Repeat size={16} />,
+};
 
 export const StyleTuning: React.FC = () => {
   const { sections, updateParam, activePresetIndex } = useConfigStore();
@@ -15,26 +39,6 @@ export const StyleTuning: React.FC = () => {
 
   if (!activePreset) return <div style={{ padding: '40px', color: 'var(--text)' }}>No active preset to tune.</div>;
 
-  // Real metadata from ini_tuning_arg_table.h
-  const TUNING_ARGS = [
-    { key: 'flicker_depth', label: 'Flicker Depth', min: 0, max: 32768, step: 100, icon: <Activity size={16} /> },
-    { key: 'flicker_speed', label: 'Flicker Speed', min: 0, max: 2000, step: 10, icon: <Wind size={16} /> },
-    { key: 'stripe_width', label: 'Stripe Width', min: 1, max: 10000, step: 100, icon: <Layers size={16} /> },
-    { key: 'stripe_speed', label: 'Stripe Speed', min: 0, max: 20000, step: 100, icon: <Repeat size={16} /> },
-    { key: 'motion_gain', label: 'Motion Gain', min: 0, max: 32768, step: 512, icon: <Activity size={16} /> },
-    { key: 'noise_mix', label: 'Noise Mix', min: 0, max: 32768, step: 512, icon: <Activity size={16} /> },
-    { key: 'base_contrast', label: 'Base Contrast', min: 0, max: 32768, step: 512, icon: <Sliders size={16} /> },
-    { key: 'drift_rate', label: 'Drift Rate', min: 0, max: 10000, step: 10, icon: <Wind size={16} /> },
-    { key: 'warm_shift', label: 'Warm Shift', min: 0, max: 32768, step: 512, icon: <Thermometer size={16} /> },
-    { key: 'jitter_amount', label: 'Jitter Amount', min: 1, max: 200, step: 1, icon: <Activity size={16} /> },
-    { key: 'spark_mix', label: 'Spark Mix', min: 0, max: 32768, step: 512, icon: <Sun size={16} /> },
-    { key: 'heat_rand', label: 'Heat Rand', min: 0, max: 32768, step: 512, icon: <Flame size={16} /> },
-    { key: 'fire_cooling', label: 'Fire Cooling', min: 0, max: 255, step: 1, icon: <Thermometer size={16} /> },
-    { key: 'rainbow_speed', label: 'Rainbow Speed', min: 1, max: 20000, step: 100, icon: <Repeat size={16} /> },
-    { key: 'ignition_time', label: 'Ignition Time', min: 50, max: 3000, step: 50, icon: <Zap size={16} /> },
-    { key: 'retraction_time', label: 'Retraction Time', min: 50, max: 3000, step: 50, icon: <ZapOff size={16} /> },
-  ];
-
   return (
     <div className="style-tuning" style={{ padding: '40px', maxWidth: '1400px', margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
@@ -46,33 +50,36 @@ export const StyleTuning: React.FC = () => {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px' }}>
-        {TUNING_ARGS.map((arg) => (
-          <div key={arg.key} style={{ background: 'var(--bg)', border: '1px solid var(--border)', padding: '20px', borderRadius: '12px', boxShadow: 'var(--shadow-sm)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {arg.icon}
-                <span style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-h)' }}>{arg.label}</span>
+        {STYLE_TUNING_ARGS.map((arg) => {
+          const currentValue = getStyleTuningValue(activePreset.params, arg.key);
+          return (
+            <div key={arg.key} style={{ background: 'var(--bg)', border: '1px solid var(--border)', padding: '20px', borderRadius: '12px', boxShadow: 'var(--shadow-sm)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {TUNING_ARG_ICONS[arg.key]}
+                  <span style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-h)' }}>{arg.label}</span>
+                </div>
+                <span style={{ fontSize: '13px', fontFamily: 'var(--mono)', fontWeight: 600, color: 'var(--accent)' }}>
+                  {currentValue}
+                </span>
               </div>
-              <span style={{ fontSize: '13px', fontFamily: 'var(--mono)', fontWeight: 600, color: 'var(--accent)' }}>
-                {activePreset.params[arg.key] || (arg.key.includes('time') ? '300' : '0')}
-              </span>
+
+              <input
+                type="range"
+                min={arg.min}
+                max={arg.max}
+                step={arg.step}
+                value={currentValue}
+                onChange={(e) => updateParam(activeSectionIndex, arg.key, e.target.value)}
+                style={{
+                  width: '100%',
+                  cursor: 'pointer',
+                  accentColor: 'var(--accent)'
+                }}
+              />
             </div>
-            
-            <input 
-              type="range"
-              min={arg.min}
-              max={arg.max}
-              step={arg.step}
-              value={activePreset.params[arg.key] || (arg.key.includes('time') ? '300' : '0')}
-              onChange={(e) => updateParam(activeSectionIndex, arg.key, e.target.value)}
-              style={{
-                width: '100%',
-                cursor: 'pointer',
-                accentColor: 'var(--accent)'
-              }}
-            />
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
