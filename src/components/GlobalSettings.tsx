@@ -1,6 +1,11 @@
 import React from 'react';
 import { useConfigStore } from '../state/configStore';
 import { Volume2, Zap, RotateCcw } from 'lucide-react';
+import {
+  getGlobalParamValue,
+  getGestureEnabled,
+  type GlobalGestureKey,
+} from '../config/globalConfig';
 
 export const GlobalSettings: React.FC = () => {
   const { sections, updateParam } = useConfigStore();
@@ -17,6 +22,9 @@ export const GlobalSettings: React.FC = () => {
     updateParam(globalIndex, key, value);
   };
 
+  const volume = getGlobalParamValue(globalSection.params, 'volume') || '80';
+  const clashThreshold = getGlobalParamValue(globalSection.params, 'clash_threshold') || '8';
+
   return (
     <div className="global-settings" style={{ padding: '40px', maxWidth: '1000px', margin: '0 auto' }}>
       
@@ -29,17 +37,17 @@ export const GlobalSettings: React.FC = () => {
             <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600, textTransform: 'uppercase' }}>Audio</h3>
           </div>
           <div className="form-group">
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-              <label style={{ fontSize: '13px', fontWeight: 500 }}>System Volume</label>
-              <span style={{ fontSize: '14px', fontFamily: 'var(--mono)', color: 'var(--accent)' }}>{globalSection.params.Volume || 1500}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 500 }}>System Volume</label>
+                <span style={{ fontSize: '14px', fontFamily: 'var(--mono)', color: 'var(--accent)' }}>{volume}</span>
+              </div>
+              <input 
+                type="range" min="0" max="100" step="1"
+                value={volume} 
+                onChange={(e) => handleParamChange('volume', e.target.value)}
+                style={{ width: '100%', accentColor: 'var(--accent)', cursor: 'pointer' }}
+              />
             </div>
-            <input 
-              type="range" min="0" max="3000" step="50"
-              value={globalSection.params.Volume || 1500} 
-              onChange={(e) => handleParamChange('Volume', e.target.value)}
-              style={{ width: '100%', accentColor: 'var(--accent)', cursor: 'pointer' }}
-            />
-          </div>
         </div>
 
         {/* Motion Card */}
@@ -49,17 +57,17 @@ export const GlobalSettings: React.FC = () => {
             <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600, textTransform: 'uppercase' }}>Sensing</h3>
           </div>
           <div className="form-group">
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-              <label style={{ fontSize: '13px', fontWeight: 500 }}>Clash Threshold</label>
-              <span style={{ fontSize: '14px', fontFamily: 'var(--mono)', color: 'var(--accent)' }}>{globalSection.params.ClashThreshold || 2.5}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 500 }}>Clash Threshold</label>
+                <span style={{ fontSize: '14px', fontFamily: 'var(--mono)', color: 'var(--accent)' }}>{clashThreshold}</span>
+              </div>
+              <input 
+                type="number" min="1" max="16" step="1"
+                value={clashThreshold} 
+                onChange={(e) => handleParamChange('clash_threshold', e.target.value)}
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-h)', fontSize: '16px' }}
+              />
             </div>
-            <input 
-              type="number" step="0.1"
-              value={globalSection.params.ClashThreshold || 2.5} 
-              onChange={(e) => handleParamChange('ClashThreshold', e.target.value)}
-              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-h)', fontSize: '16px' }}
-            />
-          </div>
         </div>
 
         {/* Gestures Card */}
@@ -70,22 +78,46 @@ export const GlobalSettings: React.FC = () => {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <GestureToggle 
-              label="Twist ON/OFF" 
-              flag={1} 
-              currentValue={parseInt(globalSection.params.GestureFlags || '0')}
-              onChange={(newVal) => handleParamChange('GestureFlags', newVal.toString())}
+              label="Twist ON"
+              gestureKey="twist_on"
+              currentParams={globalSection.params}
+              onChange={handleParamChange}
             />
             <GestureToggle 
-              label="Stab ON" 
-              flag={2} 
-              currentValue={parseInt(globalSection.params.GestureFlags || '0')}
-              onChange={(newVal) => handleParamChange('GestureFlags', newVal.toString())}
+              label="Twist OFF"
+              gestureKey="twist_off"
+              currentParams={globalSection.params}
+              onChange={handleParamChange}
             />
             <GestureToggle 
-              label="Swing ON" 
-              flag={4} 
-              currentValue={parseInt(globalSection.params.GestureFlags || '0')}
-              onChange={(newVal) => handleParamChange('GestureFlags', newVal.toString())}
+              label="Stab ON"
+              gestureKey="stab_on"
+              currentParams={globalSection.params}
+              onChange={handleParamChange}
+            />
+            <GestureToggle
+              label="Swing ON"
+              gestureKey="swing_on"
+              currentParams={globalSection.params}
+              onChange={handleParamChange}
+            />
+            <GestureToggle
+              label="Thrust ON"
+              gestureKey="thrust_on"
+              currentParams={globalSection.params}
+              onChange={handleParamChange}
+            />
+            <GestureToggle
+              label="Force Push"
+              gestureKey="force_push"
+              currentParams={globalSection.params}
+              onChange={handleParamChange}
+            />
+            <GestureToggle
+              label="Melt"
+              gestureKey="melt"
+              currentParams={globalSection.params}
+              onChange={handleParamChange}
             />
           </div>
         </div>
@@ -95,16 +127,20 @@ export const GlobalSettings: React.FC = () => {
   );
 };
 
-const GestureToggle: React.FC<{ label: string, flag: number, currentValue: number, onChange: (v: number) => void }> = ({ label, flag, currentValue, onChange }) => {
-  const isActive = (currentValue & flag) !== 0;
+const GestureToggle: React.FC<{
+  label: string;
+  gestureKey: GlobalGestureKey;
+  currentParams: Record<string, string>;
+  onChange: (key: string, value: string) => void;
+}> = ({ label, gestureKey, currentParams, onChange }) => {
+  const isActive = getGestureEnabled(currentParams, gestureKey);
   return (
     <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '14px', color: 'var(--text-h)' }}>
       <input 
         type="checkbox" 
         checked={isActive} 
         onChange={(e) => {
-          const next = e.target.checked ? (currentValue | flag) : (currentValue & ~flag);
-          onChange(next);
+          onChange(gestureKey, e.target.checked ? 'true' : 'false');
         }}
         style={{ width: '18px', height: '18px', accentColor: 'var(--accent)' }}
       />
