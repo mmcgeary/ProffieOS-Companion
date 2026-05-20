@@ -65,7 +65,7 @@
 - Modify: `/Users/matthew.mcgeary/Copilot_workspace/ProffieOS/props/runtime_config.h`
 - Test: `/Users/matthew.mcgeary/Copilot_workspace/ProffieOS/props/style_registry_tests.cpp`
 
-- [ ] **Step 1: Write the failing test for per-blade runtime defaults**
+- [x] **Step 1: Write the failing test for per-blade runtime defaults**
 
 ```cpp
 static void TestNBladeRuntimeDefaults() {
@@ -76,7 +76,7 @@ static void TestNBladeRuntimeDefaults() {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run:
 
@@ -87,7 +87,7 @@ g++ -std=c++17 -O0 props/style_registry_tests.cpp -o /tmp/style_registry_tests &
 
 Expected: compile/test failure due missing `num_blades` and `presets[].blades[]`.
 
-- [ ] **Step 3: Write minimal runtime schema implementation**
+- [x] **Step 3: Write minimal runtime schema implementation**
 
 ```cpp
 // runtime_config.h
@@ -161,7 +161,7 @@ struct RuntimeConfig {
 };
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run:
 
@@ -172,7 +172,7 @@ g++ -std=c++17 -O0 props/style_registry_tests.cpp -o /tmp/style_registry_tests &
 
 Expected: PASS for `TestNBladeRuntimeDefaults`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd /Users/matthew.mcgeary/Copilot_workspace/ProffieOS
@@ -190,7 +190,7 @@ git commit -m "feat(ini): add canonical n-blade runtime preset schema"
 - Modify: `/Users/matthew.mcgeary/Copilot_workspace/ProffieOS/props/preset_builder.h`
 - Test: `/Users/matthew.mcgeary/Copilot_workspace/ProffieOS/props/style_registry_tests.cpp`
 
-- [ ] **Step 1: Write failing parser test for `bladeN_*` keys**
+- [x] **Step 1: Write failing parser test for `bladeN_*` keys**
 
 ```cpp
 static void TestParsePerBladePresetKeys() {
@@ -205,12 +205,12 @@ static void TestParsePerBladePresetKeys() {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run same host command as Task 1.  
 Expected: failing assertions or compile errors for missing parser support.
 
-- [ ] **Step 3: Implement `bladeN_*` parser path**
+- [x] **Step 3: Implement `bladeN_*` parser path**
 
 ```cpp
 // ini_loader.h
@@ -226,7 +226,7 @@ static bool ParseBladeKey(const char* key, int* blade_idx, const char** field) {
 }
 ```
 
-- [ ] **Step 4: Implement per-blade style string builders**
+- [x] **Step 4: Implement per-blade style string builders**
 
 ```cpp
 // style_registry.h
@@ -243,7 +243,7 @@ for (int bi = 0; bi < p->blade_count && bi < INI_NUM_BLADES; bi++) {
 }
 ```
 
-- [ ] **Step 5: Run tests to verify pass**
+- [x] **Step 5: Run tests to verify pass**
 
 Run:
 
@@ -254,7 +254,7 @@ g++ -std=c++17 -O0 props/style_registry_tests.cpp -o /tmp/style_registry_tests &
 
 Expected: per-blade parser + style-line emission tests pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 cd /Users/matthew.mcgeary/Copilot_workspace/ProffieOS
