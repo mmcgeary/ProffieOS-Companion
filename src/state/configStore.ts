@@ -8,7 +8,7 @@ interface ConfigState {
   isDirty: boolean;
   isLoading: boolean;
   error: string | null;
-  saveStatus: 'idle' | 'saving' | 'success' | 'error';
+  saveStatus: 'idle' | 'saving' | 'rebooting' | 'success' | 'error';
   logs: string[];
   activePresetIndex: number;
 
@@ -149,8 +149,15 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       const success = await serialManager.writeConfig(rawData);
 
       if (success) {
-        set({ isDirty: false, isLoading: false, saveStatus: 'success' });
-        console.log('Save sequence finished successfully');
+        set({ saveStatus: 'rebooting', error: null });
+        await serialManager.reconnectAfterReset();
+        const syncedData = await serialManager.readConfig();
+        if (!syncedData) {
+          throw new Error('Board rebooted, but no configuration data was returned');
+        }
+        const parsed = parseIni(syncedData);
+        set({ sections: parsed, isDirty: false, isLoading: false, saveStatus: 'success', isConnected: true });
+        console.log('Save sequence finished successfully and board re-synced');
         setTimeout(() => set({ saveStatus: 'idle' }), 3000);
       } else {
         set({ error: 'Board failed to confirm save. Check SD card and serial connection.', isLoading: false, saveStatus: 'error' });
@@ -158,7 +165,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       }
     } catch (error: unknown) {
       console.error('Final Save Error:', error);
-      set({ error: getErrorMessage(error), isLoading: false, saveStatus: 'error' });
+      set({ error: getErrorMessage(error), isLoading: false, saveStatus: 'error', isConnected: false });
       setTimeout(() => set({ saveStatus: 'idle' }), 3000);
     }
   },

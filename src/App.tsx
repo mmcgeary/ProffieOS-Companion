@@ -76,7 +76,7 @@ const App: React.FC = () => {
 
           <button 
             onClick={saveToBoard}
-            disabled={!isConnected || sections.length === 0 || saveStatus === 'saving'}
+            disabled={!isConnected || sections.length === 0 || saveStatus === 'saving' || saveStatus === 'rebooting'}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -86,14 +86,22 @@ const App: React.FC = () => {
               border: 'none',
               background: saveStatus === 'success' ? '#10b981' : (saveStatus === 'error' ? '#ef4444' : (isConnected && sections.length > 0 ? 'var(--accent)' : 'var(--border)')),
               color: 'white',
-              cursor: (isConnected && sections.length > 0 && saveStatus !== 'saving') ? 'pointer' : 'default',
+              cursor: (isConnected && sections.length > 0 && saveStatus !== 'saving' && saveStatus !== 'rebooting') ? 'pointer' : 'default',
               fontWeight: 600,
               opacity: isConnected && sections.length > 0 ? 1 : 0.5,
               transition: 'all 0.2s'
             }}
           >
-            <Save size={18} className={saveStatus === 'saving' ? 'animate-pulse' : ''} />
-            {saveStatus === 'saving' ? 'Saving...' : (saveStatus === 'success' ? 'Saved!' : (saveStatus === 'error' ? 'Error!' : 'Save to SD'))}
+            <Save size={18} className={saveStatus === 'saving' || saveStatus === 'rebooting' ? 'animate-pulse' : ''} />
+            {saveStatus === 'saving'
+              ? 'Saving...'
+              : saveStatus === 'rebooting'
+                ? 'Rebooting...'
+                : saveStatus === 'success'
+                  ? 'Saved!'
+                  : saveStatus === 'error'
+                    ? 'Error!'
+                    : 'Save to SD'}
           </button>
         </div>
       </header>

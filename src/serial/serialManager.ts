@@ -21,6 +21,7 @@ export class SerialManager {
   private port: SerialPortLike | null = null;
   private reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
   private writer: WritableStreamDefaultWriter<Uint8Array> | null = null;
+  private readonly baudRate = 115200;
   private decoder = new TextDecoder();
   private encoder = new TextEncoder();
   private onLineReceived: ((line: string) => void) | null = null;
@@ -39,7 +40,7 @@ export class SerialManager {
     }
 
     this.port = await navigator.serial.requestPort();
-    await this.port.open({ baudRate: 115200 });
+    await this.port.open({ baudRate: this.baudRate });
 
     this.reader = this.port.readable.getReader();
     this.writer = this.port.writable.getWriter();
@@ -92,6 +93,44 @@ export class SerialManager {
     this.port = null;
     this.reader = null;
     this.writer = null;
+  }
+
+  async reconnectAfterReset() {
+    const port = this.port;
+    if (!port) {
+      throw new Error('No previously selected serial port to reconnect');
+    }
+
+    this.onLineReceived = null;
+
+    if (this.reader) {
+      await this.reader.cancel();
+      this.reader.releaseLock();
+      this.reader = null;
+    }
+    if (this.writer) {
+      this.writer.releaseLock();
+      this.writer = null;
+    }
+
+    await port.close();
+
+    let lastError: unknown = null;
+    for (let attempt = 1; attempt <= 5; attempt++) {
+      try {
+        await sleep(attempt * 200);
+        await port.open({ baudRate: this.baudRate });
+        this.reader = port.readable.getReader();
+        this.writer = port.writable.getWriter();
+        void this.startReading();
+        return;
+      } catch (error: unknown) {
+        lastError = error;
+      }
+    }
+
+    const reason = lastError instanceof Error ? lastError.message : 'unknown error';
+    throw new Error(`Failed to reconnect after board reset: ${reason}`);
   }
 
   async readConfig(): Promise<string> {
