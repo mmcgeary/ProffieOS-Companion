@@ -77,6 +77,24 @@ describe('SerialManager', () => {
     expect((manager as unknown as SerialManagerInternals).onLineReceived).toBeNull();
   });
 
+  it('writeConfig ignores duplicate READY_FOR_INI lines and streams config once', async () => {
+    const manager = new SerialManager();
+    const writeMock = vi.fn().mockResolvedValue(undefined);
+    attachWriter(manager, writeMock);
+
+    const writePromise = manager.writeConfig('x=1');
+
+    emitLine(manager, 'READY_FOR_INI');
+    emitLine(manager, 'READY_FOR_INI');
+    await vi.advanceTimersByTimeAsync(120);
+
+    expect(decodedWrites(writeMock)).toEqual(['WRITE_INI\n', 'x=1\n', '---END_INI---\n']);
+
+    emitLine(manager, 'SAVE_OK');
+    await expect(writePromise).resolves.toBe(true);
+    expect((manager as unknown as SerialManagerInternals).onLineReceived).toBeNull();
+  });
+
   it('writeConfig resolves false when the board reports SAVE_FAIL', async () => {
     const manager = new SerialManager();
     const writeMock = vi.fn().mockResolvedValue(undefined);

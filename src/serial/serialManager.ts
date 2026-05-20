@@ -173,6 +173,7 @@ export class SerialManager {
 
     return new Promise((resolve) => {
       let settled = false;
+      let hasStartedStreaming = false;
       let timeout: ReturnType<typeof setTimeout> | undefined;
 
       const finish = (result: boolean) => {
@@ -192,6 +193,10 @@ export class SerialManager {
 
       this.onLineReceived = (line) => {
         if (line.includes('READY_FOR_INI')) {
+          if (hasStartedStreaming) {
+            return;
+          }
+          hasStartedStreaming = true;
           console.log('Board READY, streaming...');
           void streamContent().catch((error: unknown) => {
             console.error('[Serial] Failed while streaming config:', error);
