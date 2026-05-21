@@ -429,7 +429,12 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
         activeBladeIndex: clampIndex(get().activeBladeIndex, maxBladeIndex),
       });
     } catch (error: unknown) {
-      set({ error: getErrorMessage(error), isLoading: false });
+      try {
+        await serialManager.disconnect();
+      } catch (disconnectError: unknown) {
+        console.warn('Failed to disconnect cleanly after load error:', disconnectError);
+      }
+      set({ error: getErrorMessage(error), isLoading: false, isConnected: false });
     }
   },
 
@@ -512,6 +517,11 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       scheduleSaveStatusReset(set);
     } catch (error: unknown) {
       console.error('Final Save Error:', error);
+      try {
+        await serialManager.disconnect();
+      } catch (disconnectError: unknown) {
+        console.warn('Failed to disconnect cleanly after save error:', disconnectError);
+      }
       set({ error: getErrorMessage(error), isLoading: false, saveStatus: 'error', isConnected: false });
       scheduleSaveStatusReset(set);
     }

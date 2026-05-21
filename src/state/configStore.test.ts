@@ -477,6 +477,17 @@ describe('configStore save lifecycle', () => {
     expect(presetSection?.params.blade2_style).toBe('pulse');
   });
 
+  it('disconnects and marks board offline when loadFromBoard times out', async () => {
+    serialManagerMock.getHardwareProfile.mockRejectedValue(new Error('Read timeout'));
+
+    await useConfigStore.getState().loadFromBoard();
+
+    const state = useConfigStore.getState();
+    expect(serialManagerMock.disconnect).toHaveBeenCalledTimes(1);
+    expect(state.isConnected).toBe(false);
+    expect(state.error?.toLowerCase()).toContain('read timeout');
+  });
+
   it('blocks save when media is missing', async () => {
     const doc = makeDoc();
     doc.banks.blade_in.presets[0].font = 'MissingFont';
@@ -557,5 +568,17 @@ describe('configStore save lifecycle', () => {
     expect(serialManagerMock.reconnectAfterReset).toHaveBeenCalledTimes(2);
     expect(useConfigStore.getState().saveStatus).toBe('success');
     expect(useConfigStore.getState().isDirty).toBe(false);
+  });
+
+  it('disconnects cleanly when save readback times out after reboot', async () => {
+    serialManagerMock.getHardwareProfile.mockRejectedValue(new Error('Read timeout'));
+
+    await useConfigStore.getState().saveToBoard();
+
+    const state = useConfigStore.getState();
+    expect(serialManagerMock.disconnect).toHaveBeenCalledTimes(1);
+    expect(state.isConnected).toBe(false);
+    expect(state.error?.toLowerCase()).toContain('read timeout');
+    expect(state.saveStatus).toBe('error');
   });
 });
