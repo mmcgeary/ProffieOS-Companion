@@ -5,7 +5,11 @@ import { serialManager } from '../serial/serialManager';
 import { useConfigStore } from '../state/configStore';
 import { BladeCanvas } from './BladeCanvas';
 import { PresetList } from './PresetList';
-import { STYLE_TUNING_ARGS, getStyleTuningValue, type StyleTuningKey } from './styleTuningConfig';
+import {
+  getStyleTuningValue,
+  getVisibleStyleTuningArgs,
+  type StyleTuningKey,
+} from './styleTuningConfig';
 
 const BUILTIN_STYLES = [
   { value: 'standard', label: 'Standard (Pulsing)' },
@@ -141,6 +145,7 @@ export const PresetEditor: React.FC = () => {
   const {
     sections,
     doc,
+    isConnected,
     activeBank,
     activePresetIndex,
     activeBladeIndex,
@@ -183,6 +188,10 @@ export const PresetEditor: React.FC = () => {
   }, [activeBladeIndex, selectedBladeIndex, setActiveBladeIndex]);
 
   React.useEffect(() => {
+    if (!isConnected) {
+      return;
+    }
+
     let cancelled = false;
     void serialManager
       .listFonts()
@@ -195,12 +204,15 @@ export const PresetEditor: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isConnected]);
 
   React.useEffect(() => {
+    if (!isConnected) {
+      return;
+    }
+
     const font = activePreset?.font?.trim();
     if (!font) {
-      setSdTrackOptions([]);
       return;
     }
 
@@ -216,7 +228,7 @@ export const PresetEditor: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [activePreset?.font]);
+  }, [activePreset?.font, isConnected]);
 
   const fontOptions = React.useMemo(() => {
     const values = new Set<string>();
@@ -228,16 +240,19 @@ export const PresetEditor: React.FC = () => {
     });
     if (activePreset?.font) values.add(activePreset.font);
     return Array.from(values);
-  }, [activePreset?.font, presets, sdFontOptions]);
+  }, [activePreset, presets, sdFontOptions]);
 
   const trackOptions = React.useMemo(() => {
+    if (!activePreset?.font?.trim()) {
+      return [];
+    }
     const values = new Set<string>();
     if (activePreset?.track) values.add(activePreset.track);
     sdTrackOptions.forEach((track) => {
       if (track) values.add(track);
     });
     return Array.from(values);
-  }, [activePreset?.track, sdTrackOptions]);
+  }, [activePreset, sdTrackOptions]);
 
   if (sections.length === 0) {
     return (
@@ -279,6 +294,7 @@ export const PresetEditor: React.FC = () => {
   };
 
   const styleString = buildStyleString(selectedBlade);
+  const visibleStyleTuningArgs = getVisibleStyleTuningArgs(selectedBlade.style, selectedBlade.params);
 
   return (
     <div
@@ -518,8 +534,8 @@ export const PresetEditor: React.FC = () => {
           </h3>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
-            {STYLE_TUNING_ARGS.map((arg) => {
-              const value = getStyleTuningValue(selectedBlade.params, arg.key);
+          {visibleStyleTuningArgs.map((arg) => {
+            const value = getStyleTuningValue(selectedBlade.params, arg.key as StyleTuningKey);
               return (
                 <div key={arg.key}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>

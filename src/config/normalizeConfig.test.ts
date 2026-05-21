@@ -79,6 +79,26 @@ track=tracks/out.wav
 style=standard
 `;
 
+const dualBladeCanonicalIni = `[global]
+num_buttons=2
+volume=100
+
+[buttons_on]
+slot_1=blast
+
+[buttons_off]
+slot_1=next_preset
+
+[preset1]
+name=Dual Blade Preset
+font=Kestis
+track=tracks/in.wav
+blade1_style=standard
+blade1_base_color=blue
+blade2_style=pulse
+blade2_base_color=red
+`;
+
 describe('normalizeConfig', () => {
   it('builds shared + banked model from blade_in and blade_out INI inputs', () => {
     const doc = normalizeConfig({ bladeInIni, bladeOutIni, hwProfile: { numBlades: 3, numButtons: 2 } });
@@ -139,5 +159,19 @@ describe('normalizeConfig', () => {
         hwProfile: { numBlades: 1, numButtons: Number.NaN },
       })
     ).toThrowError('Invalid hwProfile.numButtons: expected a positive integer');
+  });
+
+  it('preserves multi-blade schema when hwProfile reports fallback single-blade defaults', () => {
+    const doc = normalizeConfig({
+      bladeInIni: dualBladeCanonicalIni,
+      bladeOutIni: dualBladeCanonicalIni,
+      hwProfile: { numBlades: 1, numButtons: 1, hasBladeDetect: false },
+    });
+
+    expect(doc.hardwareProfile.numBlades).toBe(2);
+    expect(doc.hardwareProfile.numButtons).toBe(2);
+    expect(doc.banks.blade_in.presets[0]?.blades).toHaveLength(2);
+    expect(doc.banks.blade_in.presets[0]?.blades[1]?.style).toBe('pulse');
+    expect(doc.banks.blade_in.presets[0]?.blades[1]?.params.base_color).toBe('red');
   });
 });

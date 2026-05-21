@@ -213,4 +213,12 @@ describe('preset UI integration', () => {
     expect(screen.getByRole('tab', { name: 'Blade 2' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'Blade 3' })).toBeTruthy();
   });
+
+  it('shows style-appropriate tuning controls for the selected blade style', () => {
+    render(<PresetEditor />);
+
+    expect(screen.queryByText('Rainbow Speed')).toBeNull();
+    expect(screen.queryByText('Strobe Duration')).toBeNull();
+    expect(screen.getByText('Flicker Speed')).toBeTruthy();
+  });
 });

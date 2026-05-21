@@ -3,6 +3,7 @@ import {
   STYLE_TUNING_ARGS,
   getStyleTuningDefault,
   getStyleTuningValue,
+  getVisibleStyleTuningArgs,
 } from './styleTuningConfig';
 
 const EXPECTED_STYLE_TUNING_METADATA = [
@@ -60,5 +61,22 @@ describe('styleTuningConfig', () => {
     expect(getStyleTuningValue(params, 'ignition_time')).toBe('900');
     expect(getStyleTuningValue(params, 'strobe_ms')).toBe('42');
     expect(getStyleTuningValue(params, 'pulse_depth')).toBe('0');
+  });
+
+  it('returns style-scoped tuning args for the selected style', () => {
+    const rainbowKeys = getVisibleStyleTuningArgs('rainbow').map((arg) => arg.key);
+
+    expect(rainbowKeys).toContain('ignition_time');
+    expect(rainbowKeys).toContain('retraction_time');
+    expect(rainbowKeys).toContain('stripe_width');
+    expect(rainbowKeys).toContain('stripe_speed');
+    expect(rainbowKeys).toContain('rainbow_speed');
+    expect(rainbowKeys).not.toContain('strobe_ms');
+    expect(rainbowKeys).not.toContain('fire_cooling');
+  });
+
+  it('keeps explicitly-set tuning keys visible even when not style-default', () => {
+    const visibleKeys = getVisibleStyleTuningArgs('rainbow', { strobe_ms: '12' }).map((arg) => arg.key);
+    expect(visibleKeys).toContain('strobe_ms');
   });
 });

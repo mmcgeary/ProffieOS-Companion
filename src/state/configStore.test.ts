@@ -365,6 +365,56 @@ describe('configStore save lifecycle', () => {
     expect(presetSections[0]?.params.blade1_style).toBe('unstable');
   });
 
+  it('preserves dual-blade presets when hardware profile command falls back to single-blade defaults', async () => {
+    serialManagerMock.getHardwareProfile.mockResolvedValue({
+      numBlades: 1,
+      numButtons: 1,
+      hasBladeDetect: false,
+    });
+    serialManagerMock.readIniBank.mockImplementation(async (bank) =>
+      bank === 'blade_in'
+        ? [
+            '[global]',
+            'num_buttons=2',
+            '',
+            '[preset1]',
+            'name=Dual In',
+            'font=Kestis',
+            'track=tracks/in.wav',
+            'blade1_style=standard',
+            'blade1_base_color=Blue',
+            'blade2_style=pulse',
+            'blade2_base_color=Cyan',
+          ].join('\n')
+        : [
+            '[global]',
+            'num_buttons=2',
+            '',
+            '[preset1]',
+            'name=Dual Out',
+            'font=Kestis',
+            'track=tracks/out.wav',
+            'blade1_style=standard',
+            'blade1_base_color=Blue',
+            'blade2_style=static',
+            'blade2_base_color=White',
+          ].join('\n')
+    );
+
+    await useConfigStore.getState().loadFromBoard();
+
+    const state = useConfigStore.getState() as ReturnType<typeof useConfigStore.getState> & {
+      doc: ConfigDocument;
+    };
+    const presetSection = state.sections.find((section) => section.name.toLowerCase() === 'preset1');
+
+    expect(state.doc.hardwareProfile.numBlades).toBe(2);
+    expect(state.doc.hardwareProfile.numButtons).toBe(2);
+    expect(state.doc.banks.blade_in.presets[0]?.blades).toHaveLength(2);
+    expect(state.doc.banks.blade_in.presets[0]?.blades[1]?.style).toBe('pulse');
+    expect(presetSection?.params.blade2_style).toBe('pulse');
+  });
+
   it('blocks save when media is missing', async () => {
     const doc = makeDoc();
     doc.banks.blade_in.presets[0].font = 'MissingFont';

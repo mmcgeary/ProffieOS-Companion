@@ -14,6 +14,7 @@ import type {
 
 const CORE_PRESET_KEYS = new Set(['name', 'font', 'track']);
 const BLADE_PARAM_KEY = /^blade(\d+)_(.+)$/i;
+const NUM_BUTTON_KEYS = new Set(['num_buttons', 'numbuttons']);
 
 export interface NormalizeConfigInput {
   bladeInIni: string;
@@ -50,6 +51,60 @@ function assertPositiveInteger(value: number, fieldName: 'numBlades' | 'numButto
   if (!Number.isInteger(value) || value <= 0) {
     throw new Error(`Invalid hwProfile.${fieldName}: expected a positive integer`);
   }
+}
+
+function parsePositiveIntegerValue(rawValue: string): number | null {
+  const trimmed = rawValue.trim();
+  if (!/^[1-9]\d*$/.test(trimmed)) {
+    return null;
+  }
+  return Number.parseInt(trimmed, 10);
+}
+
+function inferNumBladesFromSections(sections: IniSection[]): number {
+  let inferredBladeCount = 1;
+
+  filterSectionsByPrefix(sections, 'preset').forEach((section) => {
+    Object.keys(section.params).forEach((rawKey) => {
+      const match = rawKey.toLowerCase().match(BLADE_PARAM_KEY);
+      if (!match) {
+        return;
+      }
+      const parsedBladeOrdinal = Number.parseInt(match[1], 10);
+      if (!Number.isNaN(parsedBladeOrdinal) && parsedBladeOrdinal > inferredBladeCount) {
+        inferredBladeCount = parsedBladeOrdinal;
+      }
+    });
+  });
+
+  return inferredBladeCount;
+}
+
+function inferNumButtonsFromSections(bladeInSections: IniSection[], bladeOutSections: IniSection[]): number | null {
+  let inferredNumButtons: number | null = null;
+  const globals = [
+    findSectionByName(bladeInSections, 'global'),
+    findSectionByName(bladeOutSections, 'global'),
+  ];
+
+  globals.forEach((globalSection) => {
+    if (!globalSection) {
+      return;
+    }
+
+    Object.entries(globalSection.params).forEach(([rawKey, rawValue]) => {
+      if (!NUM_BUTTON_KEYS.has(rawKey.toLowerCase())) {
+        return;
+      }
+      const parsed = parsePositiveIntegerValue(rawValue);
+      if (parsed === null) {
+        return;
+      }
+      inferredNumButtons = inferredNumButtons === null ? parsed : Math.max(inferredNumButtons, parsed);
+    });
+  });
+
+  return inferredNumButtons;
 }
 
 function normalizePreset(section: IniSection, numBlades: number): PresetConfig {
@@ -172,14 +227,21 @@ export function normalizeConfig({ bladeInIni, bladeOutIni, hwProfile }: Normaliz
 
   const bladeInSections = parseIni(bladeInIni);
   const bladeOutSections = parseIni(bladeOutIni);
+  const inferredNumBlades = Math.max(
+    inferNumBladesFromSections(bladeInSections),
+    inferNumBladesFromSections(bladeOutSections),
+  );
+  const inferredNumButtons = inferNumButtonsFromSections(bladeInSections, bladeOutSections) ?? 1;
+  const effectiveNumBlades = Math.max(hwProfile.numBlades, inferredNumBlades);
+  const effectiveNumButtons = Math.max(hwProfile.numButtons, inferredNumButtons);
 
   const global = readSharedSection(bladeInSections, bladeOutSections, 'global');
-  global.num_buttons = String(hwProfile.numButtons);
+  global.num_buttons = String(effectiveNumButtons);
 
   return {
     hardwareProfile: {
-      numBlades: hwProfile.numBlades,
-      numButtons: hwProfile.numButtons,
+      numBlades: effectiveNumBlades,
+      numButtons: effectiveNumButtons,
       hasBladeDetect: hwProfile.hasBladeDetect ?? bladeOutIni.trim().length > 0,
     },
     shared: {
@@ -188,8 +250,8 @@ export function normalizeConfig({ bladeInIni, bladeOutIni, hwProfile }: Normaliz
       buttonsOff: readSharedSection(bladeInSections, bladeOutSections, 'buttons_off'),
     },
     banks: {
-      blade_in: normalizeBank(bladeInSections, hwProfile.numBlades),
-      blade_out: normalizeBank(bladeOutSections, hwProfile.numBlades),
+      blade_in: normalizeBank(bladeInSections, effectiveNumBlades),
+      blade_out: normalizeBank(bladeOutSections, effectiveNumBlades),
     },
   };
 }
