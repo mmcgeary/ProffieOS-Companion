@@ -256,6 +256,10 @@ export class SerialManager {
       timeout = setTimeout(() => finishReject(new Error('Read timeout')), 10000);
 
       this.onLineReceived = (line) => {
+        if (line.toLowerCase().includes('error: ini not found')) {
+          finishResolve('');
+          return;
+        }
         if (line.includes('---BEGIN_INI---')) {
           capturing = true;
           return;

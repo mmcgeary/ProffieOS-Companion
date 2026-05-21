@@ -141,6 +141,21 @@ describe('SerialManager', () => {
     expect((manager as unknown as SerialManagerInternals).onLineReceived).toBeNull();
   });
 
+  it('returns empty ini content when board reports INI not found for a bank', async () => {
+    const manager = new SerialManager();
+    const writeMock = vi.fn().mockResolvedValue(undefined);
+    attachWriter(manager, writeMock);
+
+    const readPromise = manager.readIniBank('blade_out');
+
+    expect(decodedWrites(writeMock)).toEqual(['READ_INI_BANK blade_out\n']);
+
+    emitLine(manager, 'ERROR: INI not found');
+
+    await expect(readPromise).resolves.toBe('');
+    expect((manager as unknown as SerialManagerInternals).onLineReceived).toBeNull();
+  });
+
   it('sends WRITE_INI_BANK blade_in and streams config after READY_FOR_INI', async () => {
     const manager = new SerialManager();
     const writeMock = vi.fn().mockResolvedValue(undefined);
