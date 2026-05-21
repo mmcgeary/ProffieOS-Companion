@@ -638,7 +638,7 @@ git commit -m "feat(ui): unify presets tuning and add banked n-blade preset mana
 - Create: `/Users/matthew.mcgeary/Copilot_workspace/ProffieOS-Companion/.worktrees/n-blade-platform/src/parser/fixtures/blade_out_mhs4.ini`
 - Modify/Test: `/Users/matthew.mcgeary/Copilot_workspace/ProffieOS-Companion/.worktrees/n-blade-platform/src/parser/iniParser.test.ts`
 
-- [ ] **Step 1: Write failing fixture contract tests for new schema**
+- [x] **Step 1: Write failing fixture contract tests for new schema**
 
 ```ts
 it('roundtrips blade_in and blade_out fixtures with per-blade keys', () => {
@@ -648,7 +648,7 @@ it('roundtrips blade_in and blade_out fixtures with per-blade keys', () => {
 })
 ```
 
-- [ ] **Step 2: Run tests to verify failure**
+- [x] **Step 2: Run tests to verify failure**
 
 Run:
 
@@ -659,7 +659,7 @@ npm test -- src/parser/iniParser.test.ts
 
 Expected: FAIL until fixtures + parser expectations are updated.
 
-- [ ] **Step 3: Update fixtures and parser expectations**
+- [x] **Step 3: Update fixtures and parser expectations**
 
 ```ini
 [preset1]
@@ -667,7 +667,7 @@ blade1_style=standard
 blade2_style=pulse
 ```
 
-- [ ] **Step 4: Run final verification suite (companion + firmware host tests)**
+- [x] **Step 4: Run final verification suite (companion + firmware host tests)**
 
 Run:
 
@@ -682,7 +682,7 @@ g++ -std=c++17 -O0 props/style_registry_tests.cpp -o /tmp/style_registry_tests &
 
 Expected: all commands succeed.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd /Users/matthew.mcgeary/Copilot_workspace/ProffieOS-Companion/.worktrees/n-blade-platform

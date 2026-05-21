@@ -145,7 +145,7 @@ name=New Preset
 });
 
 describe('cross-repo profile fixtures', () => {
-  it('roundtrips mhs4_ini fixture with one-button single-blade profile data', () => {
+  it('roundtrips mhs4 blade_in fixture with canonical single-blade keys', () => {
     const parsed = parseIni(loadFixture('mhs4_ini.ini'));
     const global = parsed.find((section) => section.name.toLowerCase() === 'global');
     const presets = parsed.filter((section) => section.name.toLowerCase().startsWith('preset'));
@@ -153,26 +153,46 @@ describe('cross-repo profile fixtures', () => {
 
     expect(global?.params.num_buttons).toBe('1');
     expect(presets).toHaveLength(1);
-    expect(firstPreset?.params.style).toBe('standard');
-    expect(firstPreset?.params.accent_style).toBeUndefined();
+    expect(firstPreset?.params.blade1_style).toBe('standard');
+    expect(firstPreset?.params.blade1_base_color).toBe('blue');
+    expect(firstPreset?.params.style).toBeUndefined();
 
     const regenerated = generateIni(parsed);
     expect(parseIni(regenerated)).toEqual(parsed);
   });
 
-  it('roundtrips mining fixture with two-button two-blade representative data', () => {
+  it('roundtrips mining blade_in fixture with canonical two-blade keys', () => {
     const parsed = parseIni(loadFixture('mining.ini'));
     const global = parsed.find((section) => section.name.toLowerCase() === 'global');
     const presets = parsed.filter((section) => section.name.toLowerCase().startsWith('preset'));
     const [firstPreset, secondPreset] = presets;
 
     expect(global?.params.num_buttons).toBe('2');
-    // NUM_BLADES is comment-only fixture metadata, so parser coverage uses preset-level accent fields as a boundary check.
     expect(presets).toHaveLength(2);
-    expect(firstPreset?.params.accent_style).toBe('static');
-    expect(firstPreset?.params.accent_speed).toBe('1000');
-    expect(secondPreset?.params.accent_style).toBe('pulse');
-    expect(secondPreset?.params.accent_speed).toBe('1200');
+    expect(firstPreset?.params.blade1_style).toBe('standard');
+    expect(firstPreset?.params.blade2_style).toBe('static');
+    expect(firstPreset?.params.blade2_pulse_rate).toBe('1000');
+    expect(secondPreset?.params.blade1_style).toBe('standard');
+    expect(secondPreset?.params.blade2_style).toBe('pulse');
+    expect(secondPreset?.params.blade2_pulse_rate).toBe('1200');
+    expect(firstPreset?.params.style).toBeUndefined();
+    expect(firstPreset?.params.accent_style).toBeUndefined();
+
+    const regenerated = generateIni(parsed);
+    expect(parseIni(regenerated)).toEqual(parsed);
+  });
+
+  it('roundtrips mhs4 blade_out fixture with canonical single-blade keys', () => {
+    const parsed = parseIni(loadFixture('blade_out_mhs4.ini'));
+    const global = parsed.find((section) => section.name.toLowerCase() === 'global');
+    const presets = parsed.filter((section) => section.name.toLowerCase().startsWith('preset'));
+    const [firstPreset] = presets;
+
+    expect(global?.params.num_buttons).toBe('1');
+    expect(presets).toHaveLength(1);
+    expect(firstPreset?.params.blade1_style).toBe('unstable');
+    expect(firstPreset?.params.blade1_base_color).toBe('orange');
+    expect(firstPreset?.params.style).toBeUndefined();
 
     const regenerated = generateIni(parsed);
     expect(parseIni(regenerated)).toEqual(parsed);
