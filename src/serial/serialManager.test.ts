@@ -212,6 +212,22 @@ describe('SerialManager', () => {
     expect((manager as unknown as SerialManagerInternals).onLineReceived).toBeNull();
   });
 
+  it('rejects getHardwareProfile when command returns no lines before timeout', async () => {
+    const manager = new SerialManager();
+    const writeMock = vi.fn().mockResolvedValue(undefined);
+    attachWriter(manager, writeMock);
+
+    const profilePromise = manager.getHardwareProfile();
+    const profileExpectation = expect(profilePromise).rejects.toThrow('Read timeout');
+
+    expect(decodedWrites(writeMock)).toEqual(['GET_HW_PROFILE\n']);
+
+    await vi.advanceTimersByTimeAsync(6000);
+
+    await profileExpectation;
+    expect((manager as unknown as SerialManagerInternals).onLineReceived).toBeNull();
+  });
+
   it('falls back when numeric hardware profile values are not strict integers', async () => {
     const manager = new SerialManager();
     const writeMock = vi.fn().mockResolvedValue(undefined);

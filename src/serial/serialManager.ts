@@ -347,6 +347,8 @@ export class SerialManager {
 
   private async collectCommandLines(command: string): Promise<string[]> {
     const writer = this.getConnectedWriter();
+    const allowsEmptyResponse =
+      command === 'list_fonts' || command === 'list_tracks' || command.startsWith('list_tracks ');
 
     return new Promise((resolve, reject) => {
       let settled = false;
@@ -394,6 +396,9 @@ export class SerialManager {
       };
 
       const scheduleNoResponseResolve = () => {
+        if (!allowsEmptyResponse) {
+          return;
+        }
         if (settled || hasReceivedLine) {
           return;
         }
