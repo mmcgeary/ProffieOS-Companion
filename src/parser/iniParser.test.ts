@@ -53,6 +53,7 @@ const LEGACY_PRESET_KEYS = [
   'retraction_time',
   'accent_style',
   'accent_base_color',
+  'accent_speed',
   'accent_pulse_rate',
 ] as const;
 
@@ -62,7 +63,7 @@ function expectCanonicalPresetKeyset(params: Record<string, string> | undefined,
     bladeCount === 2
       ? [...CANONICAL_PRESET_KEYS, ...CANONICAL_BLADE1_KEYS, ...CANONICAL_BLADE2_KEYS]
       : [...CANONICAL_PRESET_KEYS, ...CANONICAL_BLADE1_KEYS];
-  expect(Object.keys(params ?? {})).toEqual(expect.arrayContaining(requiredKeys));
+  expect(Object.keys(params ?? {}).sort()).toEqual([...requiredKeys].sort());
 }
 
 function expectLegacyPresetKeysAbsent(params: Record<string, string> | undefined): void {
