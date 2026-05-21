@@ -86,6 +86,11 @@ const updateDocBankPresets = (
   };
 };
 
+const buildSectionsForBank = (doc: ConfigDocument, bank: ConfigBank): IniSection[] => {
+  const ini = bank === 'blade_in' ? buildBladeInIni(doc) : buildBladeOutIni(doc);
+  return parseIni(ini);
+};
+
 const cloneBlade = (blade: BladeStyleConfig): BladeStyleConfig => ({
   style: blade.style,
   params: { ...blade.params },
@@ -399,7 +404,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       const maxBladeIndex = Math.max(0, doc.hardwareProfile.numBlades - 1);
 
       set({
-        sections: parseIni(bladeInIni || ''),
+        sections: buildSectionsForBank(doc, activeBank),
         doc,
         isDirty: false,
         isLoading: false,
@@ -458,7 +463,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
         const maxBladeIndex = Math.max(0, syncedDoc.hardwareProfile.numBlades - 1);
 
         set({
-          sections: parseIni(syncedBladeIn || bladeInIni),
+          sections: buildSectionsForBank(syncedDoc, activeBank),
           doc: syncedDoc,
           isDirty: false,
           isLoading: false,
@@ -541,6 +546,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
 
       const maxPresetIndex = Math.max(0, getBankPresets(state.doc, bank).length - 1);
       return {
+        sections: buildSectionsForBank(state.doc, bank),
         activeBank: bank,
         activePresetIndex: clampIndex(state.activePresetIndex, maxPresetIndex),
       };

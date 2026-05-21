@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { buildBladeInIni } from '../config/normalizeConfig';
 import type { ConfigDocument } from '../config/types';
+import { parseIni } from '../parser/iniParser';
 
 const serialManagerMock = vi.hoisted(() => ({
   connect: vi.fn<() => Promise<void>>(),
@@ -266,6 +268,56 @@ describe('configStore save lifecycle', () => {
     expect(state.doc.banks.blade_in.presets[0].blades[1].params.base_color).toBe('Purple');
     expect(state.doc.banks.blade_out.presets[0].blades[1].params.base_color).toBe('Orange');
     expect(state.sections[1]?.params.blade2_base_color).toBe('Purple');
+  });
+
+  it("setActiveBank('blade_out') refreshes sections from blade_out content", () => {
+    const doc = makeDoc();
+    useConfigStore.setState({
+      sections: parseIni(buildBladeInIni(doc)),
+      doc,
+      activeBank: 'blade_in',
+      activePresetIndex: 0,
+    });
+
+    useConfigStore.getState().setActiveBank('blade_out');
+
+    const state = useConfigStore.getState() as ReturnType<typeof useConfigStore.getState> & {
+      doc: ConfigDocument;
+    };
+    const presetSections = state.sections.filter((section) =>
+      section.name.toLowerCase().startsWith('preset')
+    );
+
+    expect(state.activeBank).toBe('blade_out');
+    expect(presetSections).toHaveLength(1);
+    expect(presetSections[0]?.params.name).toBe('OutOnly');
+    expect(presetSections[0]?.params.blade1_style).toBe('standard');
+  });
+
+  it('updateBladeParam style in blade_out updates doc and bladeN_style section key', () => {
+    const doc = makeDoc();
+    useConfigStore.setState({
+      sections: parseIni(buildBladeInIni(doc)),
+      doc,
+      activeBank: 'blade_in',
+      activePresetIndex: 0,
+    });
+
+    const store = useConfigStore.getState();
+    store.setActiveBank('blade_out');
+    store.updateBladeParam(0, 0, 'style', 'unstable');
+
+    const state = useConfigStore.getState() as ReturnType<typeof useConfigStore.getState> & {
+      doc: ConfigDocument;
+    };
+    const presetSections = state.sections.filter((section) =>
+      section.name.toLowerCase().startsWith('preset')
+    );
+
+    expect(state.doc.banks.blade_out.presets[0].blades[0].style).toBe('unstable');
+    expect(state.doc.banks.blade_in.presets[0].blades[0].style).toBe('standard');
+    expect(presetSections[0]?.params.name).toBe('OutOnly');
+    expect(presetSections[0]?.params.blade1_style).toBe('unstable');
   });
 
   it('blocks save when media is missing', async () => {
