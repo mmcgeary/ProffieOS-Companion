@@ -318,4 +318,20 @@ describe('SerialManager', () => {
     ]);
     expect((manager as unknown as SerialManagerInternals).onLineReceived).toBeNull();
   });
+
+  it('normalizes trailing slash in listTracks font argument before sending command', async () => {
+    const manager = new SerialManager();
+    const writeMock = vi.fn().mockResolvedValue(undefined);
+    attachWriter(manager, writeMock);
+
+    const tracksPromise = manager.listTracks('Vader/');
+
+    expect(decodedWrites(writeMock)).toEqual(['list_tracks Vader\n']);
+
+    emitLine(manager, 'tracks/vader.wav');
+    await vi.advanceTimersByTimeAsync(250);
+
+    await expect(tracksPromise).resolves.toEqual(['tracks/vader.wav']);
+    expect((manager as unknown as SerialManagerInternals).onLineReceived).toBeNull();
+  });
 });

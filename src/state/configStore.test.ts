@@ -190,6 +190,36 @@ describe('configStore save lifecycle', () => {
     expect(samplePresetSection?.params.blade2_style).toBe('standard');
   });
 
+  it('loadSample keeps dual-blade sample defaults when board profile falls back to single-blade values', async () => {
+    useConfigStore.setState({
+      sections: [],
+      doc: null,
+      isConnected: true,
+      isDirty: false,
+      isLoading: false,
+      error: null,
+      activeBank: 'blade_in',
+      activePresetIndex: 0,
+      activeBladeIndex: 0,
+    });
+    serialManagerMock.getHardwareProfile.mockResolvedValue({
+      numBlades: 1,
+      numButtons: 1,
+      hasBladeDetect: false,
+    });
+
+    await useConfigStore.getState().loadSample();
+
+    const state = useConfigStore.getState() as ReturnType<typeof useConfigStore.getState> & {
+      doc: ConfigDocument;
+    };
+    const samplePresetSection = state.sections.find((section) => section.name.toLowerCase() === 'preset1');
+
+    expect(state.doc.hardwareProfile.numBlades).toBe(2);
+    expect(state.doc.banks.blade_in.presets[0]?.blades).toHaveLength(2);
+    expect(samplePresetSection?.params.blade2_style).toBe('standard');
+  });
+
   it('reorders presets in active bank and syncs preset sections', () => {
     const doc = makeDoc();
     useConfigStore.setState({
@@ -457,6 +487,18 @@ describe('configStore save lifecycle', () => {
 
     expect(useConfigStore.getState().error?.toLowerCase()).toContain('missing');
     expect(serialManagerMock.writeIniBank).not.toHaveBeenCalled();
+  });
+
+  it('allows save when preset track is empty', async () => {
+    const doc = makeDoc();
+    doc.banks.blade_in.presets[0].track = '';
+    doc.banks.blade_out.presets[0].track = '';
+    useConfigStore.setState({ doc, activeBank: 'blade_in', activePresetIndex: 0 });
+
+    await useConfigStore.getState().saveToBoard();
+
+    expect(useConfigStore.getState().error).toBeNull();
+    expect(serialManagerMock.writeIniBank).toHaveBeenCalledTimes(2);
   });
 
   it('writes both banks and reloads before reporting success', async () => {

@@ -458,7 +458,7 @@ export class SerialManager {
   }
 
   async listTracks(font: string): Promise<string[]> {
-    const trimmedFont = font.trim();
+    const trimmedFont = font.trim().replace(/\/+$/, '');
     const command = trimmedFont ? `list_tracks ${trimmedFont}` : 'list_tracks';
     const lines = await this.collectCommandLines(command);
     return parseMediaListing(lines);

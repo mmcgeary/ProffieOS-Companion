@@ -262,7 +262,12 @@ const findMissingMediaReferences = async (doc: ConfigDocument): Promise<string[]
         tracksByFont.set(normalizedFont, tracks);
       }
 
-      if (validateMediaReference(preset.track, tracks) === 'missing') {
+      const track = preset.track.trim();
+      if (!track) {
+        continue;
+      }
+
+      if (validateMediaReference(track, tracks) === 'missing') {
         missing.add(`track "${preset.track}" for font "${font}"`);
       }
     }
@@ -272,39 +277,32 @@ const findMissingMediaReferences = async (doc: ConfigDocument): Promise<string[]
 };
 
 const SAMPLE_INI = `[Global]
-Volume=1500
-ClashThreshold=2.5
-GestureFlags=0
+num_buttons=2
+volume=80
+clash_threshold=8
+gesture_flags=5
 
-[preset]
+[preset1]
 name=Kestis
-font=Kestis/
-track=tracks/kestis.wav
-style=standard
-base_color=Blue
-alt_color=Cyan
-blast_color=White
-clash_color=White
-lockup_color=White
-ignition_time=300
-retraction_time=800
-flicker_depth=12000
-flicker_speed=1000
+font=Kestis
+track=
+blade1_style=standard
+blade1_base_color=Blue
+blade1_alt_color=Cyan
+blade2_style=standard
+blade2_base_color=Cyan
+blade2_alt_color=White
 
-[preset]
+[preset2]
 name=Vader
-font=Vader/
-track=tracks/vader.wav
-style=unstable
-base_color=Red
-alt_color=White
-blast_color=White
-clash_color=White
-lockup_color=White
-ignition_time=300
-retraction_time=800
-flicker_depth=16000
-flicker_speed=1500
+font=Vader
+track=
+blade1_style=unstable
+blade1_base_color=Red
+blade1_alt_color=White
+blade2_style=standard
+blade2_base_color=Orange
+blade2_alt_color=Yellow
 
 [buttons_off]
 slot_0=on_or_volume_up
