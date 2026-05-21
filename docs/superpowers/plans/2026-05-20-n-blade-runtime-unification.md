@@ -342,7 +342,7 @@ git commit -m "feat(ini): add explicit bank protocol and fix blade-detect bank a
 - Create/Test: `/Users/matthew.mcgeary/Copilot_workspace/ProffieOS-Companion/.worktrees/n-blade-platform/src/config/normalizeConfig.test.ts`
 - Modify: `/Users/matthew.mcgeary/Copilot_workspace/ProffieOS-Companion/.worktrees/n-blade-platform/src/parser/iniParser.ts`
 
-- [ ] **Step 1: Write failing normalization tests**
+- [x] **Step 1: Write failing normalization tests**
 
 ```ts
 it('builds shared + banked model from blade_in and blade_out INI inputs', () => {
@@ -353,7 +353,7 @@ it('builds shared + banked model from blade_in and blade_out INI inputs', () => 
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run:
 
@@ -364,7 +364,7 @@ npm test -- src/config/normalizeConfig.test.ts
 
 Expected: FAIL because normalization module does not exist.
 
-- [ ] **Step 3: Implement normalized types + conversion**
+- [x] **Step 3: Implement normalized types + conversion**
 
 ```ts
 export interface BladeStyleConfig { style: string; params: Record<string, string> }
@@ -376,7 +376,7 @@ export interface ConfigDocument {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify pass**
+- [x] **Step 4: Run tests to verify pass**
 
 Run:
 
@@ -387,7 +387,7 @@ npm test -- src/config/normalizeConfig.test.ts
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd /Users/matthew.mcgeary/Copilot_workspace/ProffieOS-Companion/.worktrees/n-blade-platform

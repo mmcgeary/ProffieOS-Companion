@@ -49,3 +49,16 @@ export function generateIni(data: IniSection[]): string {
   }
   return result;
 }
+
+export function sectionNameEquals(sectionName: string, targetName: string): boolean {
+  return sectionName.toLowerCase() === targetName.toLowerCase();
+}
+
+export function findSectionByName(sections: IniSection[], targetName: string): IniSection | undefined {
+  return sections.find((section) => sectionNameEquals(section.name, targetName));
+}
+
+export function filterSectionsByPrefix(sections: IniSection[], prefix: string): IniSection[] {
+  const normalizedPrefix = prefix.toLowerCase();
+  return sections.filter((section) => section.name.toLowerCase().startsWith(normalizedPrefix));
+}
