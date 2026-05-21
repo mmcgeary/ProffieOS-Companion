@@ -270,7 +270,7 @@ git commit -m "feat(ini): parse and build per-blade preset style data"
 - Modify: `/Users/matthew.mcgeary/Copilot_workspace/ProffieOS/props/saber_ini_config.h`
 - Test: `/Users/matthew.mcgeary/Copilot_workspace/ProffieOS/props/style_registry_tests.cpp` (bank behavior unit coverage where possible)
 
-- [ ] **Step 1: Write failing test/spec assertions for bank command handling**
+- [x] **Step 1: Write failing test/spec assertions for bank command handling**
 
 ```cpp
 static void TestBankCommandNamesStable() {
@@ -279,12 +279,12 @@ static void TestBankCommandNamesStable() {
 }
 ```
 
-- [ ] **Step 2: Run host test to verify failure**
+- [x] **Step 2: Run host test to verify failure**
 
 Run host command.  
 Expected: missing command constants or behavior scaffolding.
 
-- [ ] **Step 3: Implement explicit bank read/write commands**
+- [x] **Step 3: Implement explicit bank read/write commands**
 
 ```cpp
 if (!strcmp(cmd, "READ_INI_BANK")) {
@@ -300,7 +300,7 @@ if (!strcmp(cmd, "WRITE_INI_BANK")) {
 }
 ```
 
-- [ ] **Step 4: Fix startup/load/switch path**
+- [x] **Step 4: Fix startup/load/switch path**
 
 ```cpp
 void Setup() override {
@@ -313,7 +313,7 @@ void Setup() override {
 }
 ```
 
-- [ ] **Step 5: Run test + compile sanity**
+- [x] **Step 5: Run test + compile sanity**
 
 Run:
 
@@ -324,7 +324,7 @@ g++ -std=c++17 -O0 props/style_registry_tests.cpp -o /tmp/style_registry_tests &
 
 Expected: host tests pass and bank command symbols compile.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 cd /Users/matthew.mcgeary/Copilot_workspace/ProffieOS
