@@ -158,6 +158,38 @@ describe('configStore save lifecycle', () => {
     vi.unstubAllGlobals();
   });
 
+  it('loadSample uses live hardware profile when connected so dual-blade sabers get blade2 editors', async () => {
+    useConfigStore.setState({
+      sections: [],
+      doc: null,
+      isConnected: true,
+      isDirty: false,
+      isLoading: false,
+      error: null,
+      activeBank: 'blade_in',
+      activePresetIndex: 0,
+      activeBladeIndex: 0,
+    });
+    serialManagerMock.getHardwareProfile.mockResolvedValue({
+      numBlades: 2,
+      numButtons: 2,
+      hasBladeDetect: true,
+    });
+
+    await useConfigStore.getState().loadSample();
+
+    const state = useConfigStore.getState() as ReturnType<typeof useConfigStore.getState> & {
+      doc: ConfigDocument;
+    };
+    const samplePresetSection = state.sections.find((section) => section.name.toLowerCase() === 'preset1');
+
+    expect(serialManagerMock.getHardwareProfile).toHaveBeenCalledTimes(1);
+    expect(state.doc.hardwareProfile.numBlades).toBe(2);
+    expect(state.doc.hardwareProfile.numButtons).toBe(2);
+    expect(state.doc.banks.blade_in.presets[0]?.blades).toHaveLength(2);
+    expect(samplePresetSection?.params.blade2_style).toBe('standard');
+  });
+
   it('reorders presets in active bank and syncs preset sections', () => {
     const doc = makeDoc();
     useConfigStore.setState({

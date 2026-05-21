@@ -259,7 +259,9 @@ export const PresetEditor: React.FC = () => {
       <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--text)' }}>
         <p style={{ fontSize: '18px', marginBottom: '20px' }}>No configuration loaded.</p>
         <button
-          onClick={loadSample}
+          onClick={() => {
+            void loadSample();
+          }}
           style={{
             padding: '10px 20px',
             borderRadius: '6px',

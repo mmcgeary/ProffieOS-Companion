@@ -27,7 +27,7 @@ interface ConfigState {
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
   loadFromBoard: () => Promise<void>;
-  loadSample: () => void;
+  loadSample: () => Promise<void>;
   saveToBoard: () => Promise<void>;
   updateParam: (sectionIndex: number, key: string, value: string) => void;
   setActiveBank: (bank: ConfigBank) => void;
@@ -364,15 +364,34 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
     set({ isConnected: false });
   },
 
-  loadSample: () => {
-    const parsed = parseIni(SAMPLE_INI);
+  loadSample: async () => {
+    const fallbackProfile = get().doc?.hardwareProfile ?? {
+      numBlades: 1,
+      numButtons: 1,
+      hasBladeDetect: false,
+    };
+    let hwProfile = fallbackProfile;
+
+    if (get().isConnected) {
+      try {
+        const boardProfile = await serialManager.getHardwareProfile();
+        hwProfile = {
+          numBlades: Math.max(fallbackProfile.numBlades, boardProfile.numBlades),
+          numButtons: Math.max(fallbackProfile.numButtons, boardProfile.numButtons),
+          hasBladeDetect: boardProfile.hasBladeDetect,
+        };
+      } catch (error: unknown) {
+        console.warn('Unable to read hardware profile for sample config load:', error);
+      }
+    }
+
     const doc = normalizeConfig({
       bladeInIni: SAMPLE_INI,
       bladeOutIni: SAMPLE_INI,
-      hwProfile: { numBlades: 1, numButtons: 1, hasBladeDetect: false },
+      hwProfile,
     });
     set({
-      sections: parsed,
+      sections: buildSectionsForBank(doc, 'blade_in'),
       doc,
       isDirty: false,
       error: null,
