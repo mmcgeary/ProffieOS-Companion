@@ -163,18 +163,53 @@ export class SerialManager {
     }
   }
 
-  async disconnect() {
-    if (this.reader) {
-      await this.reader.cancel();
-      this.reader.releaseLock();
-    }
-    if (this.writer) {
-      this.writer.releaseLock();
-    }
-    if (this.port) await this.port.close();
-    this.port = null;
+  private async cleanupReader() {
+    if (!this.reader) return;
+
+    const reader = this.reader;
     this.reader = null;
+
+    try {
+      await reader.cancel();
+    } catch (error: unknown) {
+      console.warn('Reader cancel failed during serial cleanup:', error);
+    }
+
+    try {
+      reader.releaseLock();
+    } catch (error: unknown) {
+      console.warn('Reader release failed during serial cleanup:', error);
+    }
+  }
+
+  private cleanupWriter() {
+    if (!this.writer) return;
+
+    const writer = this.writer;
     this.writer = null;
+
+    try {
+      writer.releaseLock();
+    } catch (error: unknown) {
+      console.warn('Writer release failed during serial cleanup:', error);
+    }
+  }
+
+  private async closePortQuietly(port: SerialPortLike) {
+    try {
+      await port.close();
+    } catch (error: unknown) {
+      console.warn('Port close failed during serial cleanup:', error);
+    }
+  }
+
+  async disconnect() {
+    const port = this.port;
+    this.onLineReceived = null;
+    await this.cleanupReader();
+    this.cleanupWriter();
+    if (port) await this.closePortQuietly(port);
+    this.port = null;
   }
 
   async reconnectAfterReset() {
@@ -184,18 +219,9 @@ export class SerialManager {
     }
 
     this.onLineReceived = null;
-
-    if (this.reader) {
-      await this.reader.cancel();
-      this.reader.releaseLock();
-      this.reader = null;
-    }
-    if (this.writer) {
-      this.writer.releaseLock();
-      this.writer = null;
-    }
-
-    await port.close();
+    await this.cleanupReader();
+    this.cleanupWriter();
+    await this.closePortQuietly(port);
 
     let lastError: unknown = null;
     for (let attempt = 1; attempt <= 5; attempt++) {

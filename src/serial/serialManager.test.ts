@@ -3,8 +3,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SerialManager } from './serialManager';
 
 type SerialManagerInternals = {
+  port:
+    | {
+        readable: { getReader: () => ReadableStreamDefaultReader<Uint8Array> };
+        writable: { getWriter: () => WritableStreamDefaultWriter<Uint8Array> };
+        open: (options: { baudRate: number }) => Promise<void>;
+        close: () => Promise<void>;
+      }
+    | null;
+  reader: ReadableStreamDefaultReader<Uint8Array> | null;
   writer: WritableStreamDefaultWriter<Uint8Array> | null;
   onLineReceived: ((line: string) => void) | null;
+  startReading: () => Promise<void> | void;
 };
 
 const decoder = new TextDecoder();
@@ -178,6 +188,86 @@ describe('SerialManager', () => {
     emitLine(manager, 'SAVE_OK');
     await expect(writePromise).resolves.toBe(true);
     expect((manager as unknown as SerialManagerInternals).onLineReceived).toBeNull();
+  });
+
+  it('reconnectAfterReset continues cleanup when reader cancel rejects', async () => {
+    const manager = new SerialManager();
+    const startReadingMock = vi.fn();
+    (manager as unknown as SerialManagerInternals).startReading = startReadingMock;
+
+    const staleReaderReleaseLock = vi.fn();
+    const staleReader = {
+      cancel: vi.fn().mockRejectedValue(new Error('reader already closed')),
+      releaseLock: staleReaderReleaseLock,
+    } as unknown as ReadableStreamDefaultReader<Uint8Array>;
+    const staleWriterReleaseLock = vi.fn();
+    const staleWriter = {
+      releaseLock: staleWriterReleaseLock,
+    } as unknown as WritableStreamDefaultWriter<Uint8Array>;
+    const freshReader = {
+      read: vi.fn().mockResolvedValue({ done: true, value: undefined }),
+      cancel: vi.fn().mockResolvedValue(undefined),
+      releaseLock: vi.fn(),
+    } as unknown as ReadableStreamDefaultReader<Uint8Array>;
+    const freshWriter = {
+      releaseLock: vi.fn(),
+    } as unknown as WritableStreamDefaultWriter<Uint8Array>;
+    const openMock = vi.fn().mockResolvedValue(undefined);
+    const closeMock = vi.fn().mockResolvedValue(undefined);
+    const port = {
+      open: openMock,
+      close: closeMock,
+      readable: { getReader: vi.fn().mockReturnValue(freshReader) },
+      writable: { getWriter: vi.fn().mockReturnValue(freshWriter) },
+    } as SerialManagerInternals['port'];
+
+    const internals = manager as unknown as SerialManagerInternals;
+    internals.port = port;
+    internals.reader = staleReader;
+    internals.writer = staleWriter;
+
+    const reconnectPromise = manager.reconnectAfterReset();
+    await vi.advanceTimersByTimeAsync(250);
+    await expect(reconnectPromise).resolves.toBeUndefined();
+
+    expect(closeMock).toHaveBeenCalledTimes(1);
+    expect(openMock).toHaveBeenCalledWith({ baudRate: 115200 });
+    expect(staleReaderReleaseLock).toHaveBeenCalledTimes(1);
+    expect(staleWriterReleaseLock).toHaveBeenCalledTimes(1);
+  });
+
+  it('disconnect closes port even if reader cancel rejects', async () => {
+    const manager = new SerialManager();
+
+    const staleReaderReleaseLock = vi.fn();
+    const staleReader = {
+      cancel: vi.fn().mockRejectedValue(new Error('reader already closed')),
+      releaseLock: staleReaderReleaseLock,
+    } as unknown as ReadableStreamDefaultReader<Uint8Array>;
+    const staleWriterReleaseLock = vi.fn();
+    const staleWriter = {
+      releaseLock: staleWriterReleaseLock,
+    } as unknown as WritableStreamDefaultWriter<Uint8Array>;
+    const closeMock = vi.fn().mockResolvedValue(undefined);
+    const port = {
+      open: vi.fn(),
+      close: closeMock,
+      readable: { getReader: vi.fn() },
+      writable: { getWriter: vi.fn() },
+    } as SerialManagerInternals['port'];
+
+    const internals = manager as unknown as SerialManagerInternals;
+    internals.port = port;
+    internals.reader = staleReader;
+    internals.writer = staleWriter;
+
+    await expect(manager.disconnect()).resolves.toBeUndefined();
+    expect(closeMock).toHaveBeenCalledTimes(1);
+    expect(staleReaderReleaseLock).toHaveBeenCalledTimes(1);
+    expect(staleWriterReleaseLock).toHaveBeenCalledTimes(1);
+    expect((manager as unknown as SerialManagerInternals).port).toBeNull();
+    expect((manager as unknown as SerialManagerInternals).reader).toBeNull();
+    expect((manager as unknown as SerialManagerInternals).writer).toBeNull();
   });
 
   it('parses hardware profile from key=value response lines', async () => {
