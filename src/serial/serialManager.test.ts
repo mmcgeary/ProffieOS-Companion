@@ -110,4 +110,105 @@ describe('SerialManager', () => {
     expect(decodedWrites(writeMock)).toEqual(['WRITE_INI\n', 'x=1\n', '---END_INI---\n']);
     expect((manager as unknown as SerialManagerInternals).onLineReceived).toBeNull();
   });
+
+  it('sends READ_INI_BANK blade_out and parses ini payload', async () => {
+    const manager = new SerialManager();
+    const writeMock = vi.fn().mockResolvedValue(undefined);
+    attachWriter(manager, writeMock);
+
+    const readPromise = manager.readIniBank('blade_out');
+
+    expect(decodedWrites(writeMock)).toEqual(['READ_INI_BANK blade_out\n']);
+
+    emitLine(manager, '---BEGIN_INI---');
+    emitLine(manager, 'font=Vader');
+    emitLine(manager, 'track=tracks/vader.wav');
+    emitLine(manager, '---END_INI---');
+
+    await expect(readPromise).resolves.toBe('font=Vader\ntrack=tracks/vader.wav');
+    expect((manager as unknown as SerialManagerInternals).onLineReceived).toBeNull();
+  });
+
+  it('sends WRITE_INI_BANK blade_in and streams config after READY_FOR_INI', async () => {
+    const manager = new SerialManager();
+    const writeMock = vi.fn().mockResolvedValue(undefined);
+    attachWriter(manager, writeMock);
+
+    const writePromise = manager.writeIniBank('blade_in', 'foo=1\n\n bar=2 ');
+
+    expect(decodedWrites(writeMock)).toEqual(['WRITE_INI_BANK blade_in\n']);
+
+    emitLine(manager, 'READY_FOR_INI');
+    await vi.advanceTimersByTimeAsync(120);
+
+    expect(decodedWrites(writeMock)).toEqual([
+      'WRITE_INI_BANK blade_in\n',
+      'foo=1\n',
+      'bar=2\n',
+      '---END_INI---\n',
+    ]);
+
+    emitLine(manager, 'SAVE_OK');
+    await expect(writePromise).resolves.toBe(true);
+    expect((manager as unknown as SerialManagerInternals).onLineReceived).toBeNull();
+  });
+
+  it('parses hardware profile from key=value response lines', async () => {
+    const manager = new SerialManager();
+    const writeMock = vi.fn().mockResolvedValue(undefined);
+    attachWriter(manager, writeMock);
+
+    const profilePromise = manager.getHardwareProfile();
+
+    expect(decodedWrites(writeMock)).toEqual(['GET_HW_PROFILE\n']);
+
+    emitLine(manager, 'num_blades=3');
+    emitLine(manager, 'num_buttons=2');
+    emitLine(manager, 'blade_detect=1');
+    await vi.advanceTimersByTimeAsync(250);
+
+    await expect(profilePromise).resolves.toEqual({
+      numBlades: 3,
+      numButtons: 2,
+      hasBladeDetect: true,
+    });
+    expect((manager as unknown as SerialManagerInternals).onLineReceived).toBeNull();
+  });
+
+  it('collects list_fonts output into array', async () => {
+    const manager = new SerialManager();
+    const writeMock = vi.fn().mockResolvedValue(undefined);
+    attachWriter(manager, writeMock);
+
+    const fontsPromise = manager.listFonts();
+
+    expect(decodedWrites(writeMock)).toEqual(['list_fonts\n']);
+
+    emitLine(manager, 'Kestis');
+    emitLine(manager, 'Vader');
+    await vi.advanceTimersByTimeAsync(250);
+
+    await expect(fontsPromise).resolves.toEqual(['Kestis', 'Vader']);
+    expect((manager as unknown as SerialManagerInternals).onLineReceived).toBeNull();
+  });
+
+  it('collects list_tracks output into array for the requested font', async () => {
+    const manager = new SerialManager();
+    const writeMock = vi.fn().mockResolvedValue(undefined);
+    attachWriter(manager, writeMock);
+
+    const tracksPromise = manager.listTracks('Kestis');
+
+    expect(decodedWrites(writeMock)).toEqual(['list_tracks Kestis\n']);
+
+    emitLine(manager, 'tracks/Kestis/theme.wav');
+    emitLine(manager, 'tracks/Kestis/duel.wav');
+    await vi.advanceTimersByTimeAsync(250);
+
+    await expect(tracksPromise).resolves.toEqual([
+      'tracks/Kestis/theme.wav',
+      'tracks/Kestis/duel.wav',
+    ]);
+    expect((manager as unknown as SerialManagerInternals).onLineReceived).toBeNull();
+  });
 });

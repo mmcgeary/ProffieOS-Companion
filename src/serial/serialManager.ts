@@ -1,3 +1,5 @@
+import { parseMediaListing } from '../config/mediaCatalog';
+
 interface SerialPortLike {
   readable: ReadableStream<Uint8Array>;
   writable: WritableStream<Uint8Array>;
@@ -16,6 +18,86 @@ const hasSerialSupport = (navigatorObj: Navigator): navigatorObj is NavigatorWit
 };
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+const HW_PROFILE_NUM_BLADE_KEYS = new Set(['num_blades', 'numblades']);
+const HW_PROFILE_NUM_BUTTON_KEYS = new Set(['num_buttons', 'numbuttons']);
+const HW_PROFILE_BLADE_DETECT_KEYS = new Set([
+  'blade_detect',
+  'has_blade_detect',
+  'hasbladedetect',
+]);
+const TRUTHY_VALUES = new Set(['1', 'true', 'yes', 'on']);
+
+const parsePositiveInteger = (value: string): number | null => {
+  const parsed = Number.parseInt(value, 10);
+  if (Number.isNaN(parsed) || parsed <= 0) {
+    return null;
+  }
+  return parsed;
+};
+
+const parseHardwareProfile = (lines: string[]): HardwareProfile => {
+  let numBlades: number | null = null;
+  let numButtons: number | null = null;
+  let hasBladeDetect: boolean | null = null;
+
+  lines.forEach((line) => {
+    const normalizedLine = line
+      .trim()
+      .replace(/^hw_profile[:\s-]*/i, '')
+      .replace(/,/g, ' ')
+      .replace(/:/g, '=');
+
+    if (!normalizedLine) {
+      return;
+    }
+
+    normalizedLine
+      .split(/\s+/)
+      .filter((token) => token.includes('='))
+      .forEach((token) => {
+        const [rawKey, ...rawValueParts] = token.split('=');
+        if (!rawKey || rawValueParts.length === 0) {
+          return;
+        }
+
+        const key = rawKey.trim().toLowerCase();
+        const value = rawValueParts.join('=').trim();
+
+        if (!value) {
+          return;
+        }
+
+        if (HW_PROFILE_NUM_BLADE_KEYS.has(key)) {
+          const parsed = parsePositiveInteger(value);
+          if (parsed !== null) numBlades = parsed;
+          return;
+        }
+
+        if (HW_PROFILE_NUM_BUTTON_KEYS.has(key)) {
+          const parsed = parsePositiveInteger(value);
+          if (parsed !== null) numButtons = parsed;
+          return;
+        }
+
+        if (HW_PROFILE_BLADE_DETECT_KEYS.has(key)) {
+          hasBladeDetect = TRUTHY_VALUES.has(value.toLowerCase());
+        }
+      });
+  });
+
+  return {
+    numBlades: numBlades ?? 1,
+    numButtons: numButtons ?? 1,
+    hasBladeDetect: hasBladeDetect ?? false,
+  };
+};
+
+export interface HardwareProfile {
+  numBlades: number;
+  numButtons: number;
+  hasBladeDetect: boolean;
+}
 
 export class SerialManager {
   private port: SerialPortLike | null = null;
@@ -133,11 +215,16 @@ export class SerialManager {
     throw new Error(`Failed to reconnect after board reset: ${reason}`);
   }
 
-  async readConfig(): Promise<string> {
+  private getConnectedWriter(): WritableStreamDefaultWriter<Uint8Array> {
     const writer = this.writer;
-    if (!writer) throw new Error('Not connected');
-    console.log('[Serial] Requesting config read...');
+    if (!writer) {
+      throw new Error('Not connected');
+    }
+    return writer;
+  }
 
+  private async readIniCommand(command: string): Promise<string> {
+    const writer = this.getConnectedWriter();
     return new Promise((resolve, reject) => {
       let configBuffer = '';
       let capturing = false;
@@ -166,39 +253,29 @@ export class SerialManager {
         reject(error instanceof Error ? error : new Error(String(error)));
       };
 
-      timeout = setTimeout(() => {
-        console.error('[Serial] Read timeout reached after 10s');
-        finishReject(new Error('Read timeout'));
-      }, 10000);
+      timeout = setTimeout(() => finishReject(new Error('Read timeout')), 10000);
 
       this.onLineReceived = (line) => {
-        console.log('[Serial] line:', line);
         if (line.includes('---BEGIN_INI---')) {
           capturing = true;
-          console.log('[Serial] Handshake: BEGIN_INI found');
           return;
         }
         if (line.includes('---END_INI---')) {
-          console.log('[Serial] Handshake: END_INI found');
           finishResolve(configBuffer.trim());
           return;
         }
         if (capturing) {
-          configBuffer += line + '\n';
+          configBuffer += `${line}\n`;
         }
       };
 
-      void writer.write(this.encoder.encode('READ_INI\n')).catch((error: unknown) => {
-        console.error('[Serial] Failed to send READ_INI command:', error);
-        finishReject(error);
-      });
+      void writer.write(this.encoder.encode(`${command}\n`)).catch(finishReject);
     });
   }
 
-  async writeConfig(content: string): Promise<boolean> {
-    const writer = this.writer;
-    if (!writer) throw new Error('Not connected');
-    
+  private async writeIniCommand(command: string, content: string): Promise<boolean> {
+    const writer = this.getConnectedWriter();
+
     const streamContent = async () => {
       const lines = content.split('\n');
       for (const rawLine of lines) {
@@ -236,14 +313,13 @@ export class SerialManager {
             return;
           }
           hasStartedStreaming = true;
-          console.log('Board READY, streaming...');
           void streamContent().catch((error: unknown) => {
             console.error('[Serial] Failed while streaming config:', error);
             finish(false);
           });
           return;
         }
-        
+
         if (line.includes('SAVE_OK')) {
           finish(true);
           return;
@@ -254,11 +330,96 @@ export class SerialManager {
         }
       };
 
-      void writer.write(this.encoder.encode('WRITE_INI\n')).catch((error: unknown) => {
-        console.error('[Serial] Failed to send WRITE_INI command:', error);
-        finish(false);
-      });
+      void writer.write(this.encoder.encode(`${command}\n`)).catch(() => finish(false));
     });
+  }
+
+  private async collectCommandLines(command: string): Promise<string[]> {
+    const writer = this.getConnectedWriter();
+
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const lines: string[] = [];
+      let idleTimeout: ReturnType<typeof setTimeout> | undefined;
+      let timeout: ReturnType<typeof setTimeout> | undefined;
+
+      const clearState = () => {
+        this.onLineReceived = null;
+        if (idleTimeout) {
+          clearTimeout(idleTimeout);
+          idleTimeout = undefined;
+        }
+        if (timeout) {
+          clearTimeout(timeout);
+          timeout = undefined;
+        }
+      };
+
+      const finishResolve = () => {
+        if (settled) return;
+        settled = true;
+        clearState();
+        resolve(lines);
+      };
+
+      const finishReject = (error: unknown) => {
+        if (settled) return;
+        settled = true;
+        clearState();
+        reject(error instanceof Error ? error : new Error(String(error)));
+      };
+
+      const scheduleIdleResolve = () => {
+        if (idleTimeout) {
+          clearTimeout(idleTimeout);
+        }
+        idleTimeout = setTimeout(() => finishResolve(), 200);
+      };
+
+      timeout = setTimeout(() => finishReject(new Error('Read timeout')), 5000);
+
+      this.onLineReceived = (line) => {
+        lines.push(line);
+        scheduleIdleResolve();
+      };
+
+      scheduleIdleResolve();
+
+      void writer.write(this.encoder.encode(`${command}\n`)).catch(finishReject);
+    });
+  }
+
+  async readConfig(): Promise<string> {
+    return this.readIniCommand('READ_INI');
+  }
+
+  async writeConfig(content: string): Promise<boolean> {
+    return this.writeIniCommand('WRITE_INI', content);
+  }
+
+  async readIniBank(bank: 'blade_in' | 'blade_out'): Promise<string> {
+    return this.readIniCommand(`READ_INI_BANK ${bank}`);
+  }
+
+  async writeIniBank(bank: 'blade_in' | 'blade_out', content: string): Promise<boolean> {
+    return this.writeIniCommand(`WRITE_INI_BANK ${bank}`, content);
+  }
+
+  async getHardwareProfile(): Promise<HardwareProfile> {
+    const lines = await this.collectCommandLines('GET_HW_PROFILE');
+    return parseHardwareProfile(lines);
+  }
+
+  async listFonts(): Promise<string[]> {
+    const lines = await this.collectCommandLines('list_fonts');
+    return parseMediaListing(lines);
+  }
+
+  async listTracks(font: string): Promise<string[]> {
+    const trimmedFont = font.trim();
+    const command = trimmedFont ? `list_tracks ${trimmedFont}` : 'list_tracks';
+    const lines = await this.collectCommandLines(command);
+    return parseMediaListing(lines);
   }
 }
 
