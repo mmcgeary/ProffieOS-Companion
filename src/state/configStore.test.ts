@@ -501,6 +501,35 @@ describe('configStore save lifecycle', () => {
     expect(serialManagerMock.writeIniBank).toHaveBeenCalledTimes(2);
   });
 
+  it('reconnects between bank writes when board reboots after each successful write', async () => {
+    let reconnectCount = 0;
+    serialManagerMock.reconnectAfterReset.mockImplementation(async () => {
+      reconnectCount += 1;
+    });
+    serialManagerMock.writeIniBank.mockImplementation(async (bank) => {
+      if (bank === 'blade_in') {
+        return true;
+      }
+      return reconnectCount > 0;
+    });
+
+    await useConfigStore.getState().saveToBoard();
+
+    expect(serialManagerMock.writeIniBank).toHaveBeenNthCalledWith(
+      1,
+      'blade_in',
+      expect.stringContaining('[preset1]')
+    );
+    expect(serialManagerMock.writeIniBank).toHaveBeenNthCalledWith(
+      2,
+      'blade_out',
+      expect.stringContaining('[preset1]')
+    );
+    expect(serialManagerMock.reconnectAfterReset).toHaveBeenCalledTimes(2);
+    expect(useConfigStore.getState().saveStatus).toBe('success');
+    expect(useConfigStore.getState().error).toBeNull();
+  });
+
   it('writes both banks and reloads before reporting success', async () => {
     const reconnect = deferred<void>();
     serialManagerMock.reconnectAfterReset.mockImplementation(() => reconnect.promise);
@@ -525,7 +554,7 @@ describe('configStore save lifecycle', () => {
     );
     expect(serialManagerMock.readIniBank).toHaveBeenCalledWith('blade_in');
     expect(serialManagerMock.readIniBank).toHaveBeenCalledWith('blade_out');
-    expect(serialManagerMock.reconnectAfterReset).toHaveBeenCalledTimes(1);
+    expect(serialManagerMock.reconnectAfterReset).toHaveBeenCalledTimes(2);
     expect(useConfigStore.getState().saveStatus).toBe('success');
     expect(useConfigStore.getState().isDirty).toBe(false);
   });

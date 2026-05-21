@@ -455,50 +455,61 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       const bladeInIni = buildBladeInIni(doc);
       const bladeOutIni = buildBladeOutIni(doc);
       console.log('Sending banked INI to board...');
-      const bladeInSaved = await serialManager.writeIniBank('blade_in', bladeInIni);
-      const bladeOutSaved = await serialManager.writeIniBank('blade_out', bladeOutIni);
-
-      if (bladeInSaved && bladeOutSaved) {
+      const writeBankAndReconnect = async (
+        bank: ConfigBank,
+        content: string,
+      ): Promise<boolean> => {
+        const saved = await serialManager.writeIniBank(bank, content);
+        if (!saved) return false;
         set({ saveStatus: 'rebooting', error: null });
         await serialManager.reconnectAfterReset();
+        return true;
+      };
 
-        const hwProfile = await serialManager.getHardwareProfile();
-        const syncedBladeIn = await serialManager.readIniBank('blade_in');
-        const syncedBladeOut = await serialManager.readIniBank('blade_out');
+      const bladeInSaved = await writeBankAndReconnect('blade_in', bladeInIni);
+      const bladeOutSaved = bladeInSaved
+        ? await writeBankAndReconnect('blade_out', bladeOutIni)
+        : false;
 
-        if (!syncedBladeIn && !syncedBladeOut) {
-          throw new Error('Board rebooted, but no configuration data was returned');
-        }
-
-        const syncedDoc = normalizeConfig({
-          bladeInIni: syncedBladeIn || bladeInIni,
-          bladeOutIni: syncedBladeOut || bladeOutIni,
-          hwProfile,
-        });
-
-        const maxPresetIndex = Math.max(0, getBankPresets(syncedDoc, activeBank).length - 1);
-        const maxBladeIndex = Math.max(0, syncedDoc.hardwareProfile.numBlades - 1);
-
-        set({
-          sections: buildSectionsForBank(syncedDoc, activeBank),
-          doc: syncedDoc,
-          isDirty: false,
-          isLoading: false,
-          saveStatus: 'success',
-          isConnected: true,
-          activePresetIndex: clampIndex(activePresetIndex, maxPresetIndex),
-          activeBladeIndex: clampIndex(activeBladeIndex, maxBladeIndex),
-        });
-        console.log('Save sequence finished successfully and board re-synced');
-        scheduleSaveStatusReset(set);
-      } else {
+      if (!bladeInSaved || !bladeOutSaved) {
         set({
           error: 'Board failed to confirm save. Check SD card and serial connection.',
           isLoading: false,
           saveStatus: 'error',
         });
         scheduleSaveStatusReset(set);
+        return;
       }
+
+      const hwProfile = await serialManager.getHardwareProfile();
+      const syncedBladeIn = await serialManager.readIniBank('blade_in');
+      const syncedBladeOut = await serialManager.readIniBank('blade_out');
+
+      if (!syncedBladeIn && !syncedBladeOut) {
+        throw new Error('Board rebooted, but no configuration data was returned');
+      }
+
+      const syncedDoc = normalizeConfig({
+        bladeInIni: syncedBladeIn || bladeInIni,
+        bladeOutIni: syncedBladeOut || bladeOutIni,
+        hwProfile,
+      });
+
+      const maxPresetIndex = Math.max(0, getBankPresets(syncedDoc, activeBank).length - 1);
+      const maxBladeIndex = Math.max(0, syncedDoc.hardwareProfile.numBlades - 1);
+
+      set({
+        sections: buildSectionsForBank(syncedDoc, activeBank),
+        doc: syncedDoc,
+        isDirty: false,
+        isLoading: false,
+        saveStatus: 'success',
+        isConnected: true,
+        activePresetIndex: clampIndex(activePresetIndex, maxPresetIndex),
+        activeBladeIndex: clampIndex(activeBladeIndex, maxBladeIndex),
+      });
+      console.log('Save sequence finished successfully and board re-synced');
+      scheduleSaveStatusReset(set);
     } catch (error: unknown) {
       console.error('Final Save Error:', error);
       set({ error: getErrorMessage(error), isLoading: false, saveStatus: 'error', isConnected: false });
