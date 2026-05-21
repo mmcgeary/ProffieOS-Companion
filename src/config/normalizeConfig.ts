@@ -36,11 +36,20 @@ function readSharedSection(
   bladeOutSections: IniSection[],
   sectionName: string
 ): Record<string, string> {
+  const bladeInParams = findSectionByName(bladeInSections, sectionName)?.params ?? {};
+  const bladeOutParams = findSectionByName(bladeOutSections, sectionName)?.params ?? {};
+
+  // Preserve all shared keys across both banks; blade_in wins when a key conflicts.
   return {
-    ...(findSectionByName(bladeInSections, sectionName)?.params ??
-      findSectionByName(bladeOutSections, sectionName)?.params ??
-      {}),
+    ...bladeOutParams,
+    ...bladeInParams,
   };
+}
+
+function assertPositiveInteger(value: number, fieldName: 'numBlades' | 'numButtons'): void {
+  if (!Number.isInteger(value) || value <= 0) {
+    throw new Error(`Invalid hwProfile.${fieldName}: expected a positive integer`);
+  }
 }
 
 function normalizePreset(section: IniSection, numBlades: number): PresetConfig {
@@ -68,7 +77,7 @@ function normalizePreset(section: IniSection, numBlades: number): PresetConfig {
   });
 
   const blades: BladeStyleConfig[] = [];
-  const totalBlades = Math.max(1, numBlades);
+  const totalBlades = numBlades;
   for (let bladeIndex = 0; bladeIndex < totalBlades; bladeIndex += 1) {
     const mergedParams = {
       ...legacyBladeParams,
@@ -99,7 +108,7 @@ function normalizeBank(sections: IniSection[], numBlades: number): { presets: Pr
 
 function normalizeBladeList(preset: PresetConfig, numBlades: number): BladeStyleConfig[] {
   const normalized: BladeStyleConfig[] = [];
-  const totalBlades = Math.max(1, numBlades);
+  const totalBlades = numBlades;
   const fallbackBlade = preset.blades[0] ?? { style: 'standard', params: {} };
 
   for (let bladeIndex = 0; bladeIndex < totalBlades; bladeIndex += 1) {
@@ -158,6 +167,9 @@ function buildBankIni(doc: ConfigDocument, bank: ConfigBank): string {
 }
 
 export function normalizeConfig({ bladeInIni, bladeOutIni, hwProfile }: NormalizeConfigInput): ConfigDocument {
+  assertPositiveInteger(hwProfile.numBlades, 'numBlades');
+  assertPositiveInteger(hwProfile.numButtons, 'numButtons');
+
   const bladeInSections = parseIni(bladeInIni);
   const bladeOutSections = parseIni(bladeOutIni);
 

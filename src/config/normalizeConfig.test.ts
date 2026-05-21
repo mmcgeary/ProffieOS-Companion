@@ -39,6 +39,46 @@ blade2_style=pulse
 blade2_base_color=red
 `;
 
+const bladeInSharedConflictIni = `[global]
+num_buttons=1
+volume=100
+shared_mode=blade_in
+in_only=available
+
+[buttons_on]
+slot_1=blast
+
+[buttons_off]
+slot_1=next_preset
+
+[preset1]
+name=Blade In Preset
+font=Kestis
+track=tracks/in.wav
+style=standard
+`;
+
+const bladeOutSharedConflictIni = `[global]
+num_buttons=1
+volume=80
+shared_mode=blade_out
+out_only=available
+
+[buttons_on]
+slot_1=lockup
+slot_2=force
+
+[buttons_off]
+slot_1=prev_preset
+slot_2=next_preset
+
+[preset1]
+name=Blade Out Preset
+font=Kestis
+track=tracks/out.wav
+style=standard
+`;
+
 describe('normalizeConfig', () => {
   it('builds shared + banked model from blade_in and blade_out INI inputs', () => {
     const doc = normalizeConfig({ bladeInIni, bladeOutIni, hwProfile: { numBlades: 3, numButtons: 2 } });
@@ -60,5 +100,44 @@ describe('normalizeConfig', () => {
     expect(rebuiltBladeInPreset?.params.blade3_style).toBe('standard');
     expect(rebuiltBladeOutPreset?.params.blade2_style).toBe('pulse');
     expect(rebuiltBladeOutPreset?.params.blade2_base_color).toBe('red');
+  });
+
+  it('merges shared sections from both banks and keeps blade_in values for conflicts', () => {
+    const doc = normalizeConfig({
+      bladeInIni: bladeInSharedConflictIni,
+      bladeOutIni: bladeOutSharedConflictIni,
+      hwProfile: { numBlades: 1, numButtons: 1 },
+    });
+
+    expect(doc.shared.global.in_only).toBe('available');
+    expect(doc.shared.global.out_only).toBe('available');
+    expect(doc.shared.global.shared_mode).toBe('blade_in');
+    expect(doc.shared.global.volume).toBe('100');
+
+    expect(doc.shared.buttonsOn.slot_1).toBe('blast');
+    expect(doc.shared.buttonsOn.slot_2).toBe('force');
+
+    expect(doc.shared.buttonsOff.slot_1).toBe('next_preset');
+    expect(doc.shared.buttonsOff.slot_2).toBe('next_preset');
+  });
+
+  it('throws when hwProfile.numBlades is not a positive integer', () => {
+    expect(() =>
+      normalizeConfig({
+        bladeInIni,
+        bladeOutIni,
+        hwProfile: { numBlades: 0, numButtons: 1 },
+      })
+    ).toThrowError('Invalid hwProfile.numBlades: expected a positive integer');
+  });
+
+  it('throws when hwProfile.numButtons is not a positive integer', () => {
+    expect(() =>
+      normalizeConfig({
+        bladeInIni,
+        bladeOutIni,
+        hwProfile: { numBlades: 1, numButtons: Number.NaN },
+      })
+    ).toThrowError('Invalid hwProfile.numButtons: expected a positive integer');
   });
 });
