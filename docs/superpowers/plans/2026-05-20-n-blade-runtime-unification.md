@@ -405,7 +405,7 @@ git commit -m "feat(companion): add normalized n-blade banked config model"
 - Create/Test: `/Users/matthew.mcgeary/Copilot_workspace/ProffieOS-Companion/.worktrees/n-blade-platform/src/config/mediaCatalog.ts`
 - Create/Test: `/Users/matthew.mcgeary/Copilot_workspace/ProffieOS-Companion/.worktrees/n-blade-platform/src/config/mediaCatalog.test.ts`
 
-- [ ] **Step 1: Write failing tests for bank and media commands**
+- [x] **Step 1: Write failing tests for bank and media commands**
 
 ```ts
 it('sends READ_INI_BANK blade_out and parses ini payload', async () => {
@@ -416,7 +416,7 @@ it('collects list_fonts output into array', async () => {
 })
 ```
 
-- [ ] **Step 2: Run tests to verify failure**
+- [x] **Step 2: Run tests to verify failure**
 
 Run:
 
@@ -427,7 +427,7 @@ npm test -- src/serial/serialManager.test.ts src/config/mediaCatalog.test.ts
 
 Expected: FAIL for missing methods/commands.
 
-- [ ] **Step 3: Implement serial methods**
+- [x] **Step 3: Implement serial methods**
 
 ```ts
 readIniBank(bank: 'blade_in' | 'blade_out'): Promise<string>
@@ -437,13 +437,13 @@ listFonts(): Promise<string[]>
 listTracks(font: string): Promise<string[]>
 ```
 
-- [ ] **Step 4: Implement media parsing/validation helpers**
+- [x] **Step 4: Implement media parsing/validation helpers**
 
 ```ts
 export function validateMediaReference(value: string, valid: string[]): 'valid' | 'missing'
 ```
 
-- [ ] **Step 5: Run tests to verify pass**
+- [x] **Step 5: Run tests to verify pass**
 
 Run:
 
@@ -454,7 +454,7 @@ npm test -- src/serial/serialManager.test.ts src/config/mediaCatalog.test.ts
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 cd /Users/matthew.mcgeary/Copilot_workspace/ProffieOS-Companion/.worktrees/n-blade-platform
