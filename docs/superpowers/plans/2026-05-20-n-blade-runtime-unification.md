@@ -574,7 +574,7 @@ Run:
 
 ```bash
 cd /Users/matthew.mcgeary/Copilot_workspace/ProffieOS-Companion/.worktrees/n-blade-platform
-npm test -- src/state/configStore.test.ts src/components/styleTuningConfig.test.ts
+npm test -- src/state/configStore.test.ts src/components/styleTuningConfig.test.ts src/components/presetUiIntegration.test.tsx
 ```
 
 Expected: FAIL for outdated tab assumptions and missing new interactions.
