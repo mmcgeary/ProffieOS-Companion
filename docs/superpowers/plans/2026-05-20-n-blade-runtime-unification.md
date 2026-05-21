@@ -470,7 +470,7 @@ git commit -m "feat(companion): add bank protocol and sd media listing support"
 - Modify: `/Users/matthew.mcgeary/Copilot_workspace/ProffieOS-Companion/.worktrees/n-blade-platform/src/state/configStore.ts`
 - Modify/Test: `/Users/matthew.mcgeary/Copilot_workspace/ProffieOS-Companion/.worktrees/n-blade-platform/src/state/configStore.test.ts`
 
-- [ ] **Step 1: Write failing store tests**
+- [x] **Step 1: Write failing store tests**
 
 ```ts
 it('reorders presets in active bank', () => {
@@ -487,7 +487,7 @@ it('blocks save when media is missing', async () => {
 })
 ```
 
-- [ ] **Step 2: Run tests to verify failure**
+- [x] **Step 2: Run tests to verify failure**
 
 Run:
 
@@ -498,7 +498,7 @@ npm test -- src/state/configStore.test.ts
 
 Expected: FAIL for missing actions and validation.
 
-- [ ] **Step 3: Implement store actions and state**
+- [x] **Step 3: Implement store actions and state**
 
 ```ts
 activeBank: 'blade_in' | 'blade_out'
@@ -508,14 +508,14 @@ deletePreset(index: number): void
 updateBladeParam(presetIndex: number, bladeIndex: number, key: string, value: string): void
 ```
 
-- [ ] **Step 4: Implement save flow for both banks**
+- [x] **Step 4: Implement save flow for both banks**
 
 ```ts
 await serialManager.writeIniBank('blade_in', buildBladeInIni(doc))
 await serialManager.writeIniBank('blade_out', buildBladeOutIni(doc))
 ```
 
-- [ ] **Step 5: Run tests to verify pass**
+- [x] **Step 5: Run tests to verify pass**
 
 Run:
 
@@ -526,7 +526,7 @@ npm test -- src/state/configStore.test.ts
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 cd /Users/matthew.mcgeary/Copilot_workspace/ProffieOS-Companion/.worktrees/n-blade-platform

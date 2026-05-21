@@ -1,16 +1,27 @@
 import { create } from 'zustand';
-import { parseIni, generateIni, type IniSection } from '../parser/iniParser';
+import { parseIni, type IniSection } from '../parser/iniParser';
 import { serialManager } from '../serial/serialManager';
+import { validateMediaReference } from '../config/mediaCatalog';
+import { buildBladeInIni, buildBladeOutIni, normalizeConfig } from '../config/normalizeConfig';
+import type { BladeStyleConfig, ConfigBank, ConfigDocument, PresetConfig } from '../config/types';
+
+const BLADE_PARAM_KEY = /^blade(\d+)_(.+)$/i;
+const SAVE_STATUS_RESET_DELAY_MS = 3000;
+
+type SaveStatus = 'idle' | 'saving' | 'rebooting' | 'success' | 'error';
 
 interface ConfigState {
   sections: IniSection[];
+  doc: ConfigDocument | null;
   isConnected: boolean;
   isDirty: boolean;
   isLoading: boolean;
   error: string | null;
-  saveStatus: 'idle' | 'saving' | 'rebooting' | 'success' | 'error';
+  saveStatus: SaveStatus;
   logs: string[];
+  activeBank: ConfigBank;
   activePresetIndex: number;
+  activeBladeIndex: number;
 
   // Actions
   connect: () => Promise<void>;
@@ -19,14 +30,171 @@ interface ConfigState {
   loadSample: () => void;
   saveToBoard: () => Promise<void>;
   updateParam: (sectionIndex: number, key: string, value: string) => void;
+  setActiveBank: (bank: ConfigBank) => void;
   setActivePresetIndex: (index: number) => void;
+  setActiveBladeIndex: (index: number) => void;
   addPreset: () => void;
+  reorderPreset: (from: number, to: number) => void;
+  deletePreset: (index: number) => void;
+  updateBladeParam: (presetIndex: number, bladeIndex: number, key: string, value: string) => void;
   addLog: (msg: string) => void;
 }
 
 const getErrorMessage = (error: unknown): string => {
   if (error instanceof Error) return error.message;
   return 'Unknown error';
+};
+
+const clampIndex = (index: number, maxIndex: number): number => {
+  if (maxIndex < 0) return 0;
+  if (index < 0) return 0;
+  if (index > maxIndex) return maxIndex;
+  return index;
+};
+
+const getBankPresets = (doc: ConfigDocument, bank: ConfigBank): PresetConfig[] => {
+  return doc.banks[bank].presets;
+};
+
+const updateDocBankPresets = (
+  doc: ConfigDocument,
+  bank: ConfigBank,
+  presets: PresetConfig[]
+): ConfigDocument => {
+  if (bank === 'blade_in') {
+    return {
+      ...doc,
+      banks: {
+        ...doc.banks,
+        blade_in: {
+          ...doc.banks.blade_in,
+          presets,
+        },
+      },
+    };
+  }
+
+  return {
+    ...doc,
+    banks: {
+      ...doc.banks,
+      blade_out: {
+        ...doc.banks.blade_out,
+        presets,
+      },
+    },
+  };
+};
+
+const cloneBlade = (blade: BladeStyleConfig): BladeStyleConfig => ({
+  style: blade.style,
+  params: { ...blade.params },
+});
+
+const ensureBladeAtIndex = (blades: BladeStyleConfig[], bladeIndex: number): BladeStyleConfig[] => {
+  const next = blades.map(cloneBlade);
+  while (next.length <= bladeIndex) {
+    next.push({ style: 'standard', params: {} });
+  }
+  return next;
+};
+
+const createDefaultPreset = (numBlades: number): PresetConfig => ({
+  name: 'New Preset',
+  font: 'font1',
+  track: 'tracks/track1.wav',
+  blades: Array.from({ length: Math.max(1, numBlades) }, () => ({
+    style: 'standard',
+    params: {
+      base_color: 'Blue',
+      alt_color: 'Cyan',
+    },
+  })),
+});
+
+const resolvePresetIndexFromSectionIndex = (sections: IniSection[], sectionIndex: number): number => {
+  if (!sections[sectionIndex] || !sections[sectionIndex].name.toLowerCase().startsWith('preset')) {
+    return -1;
+  }
+
+  let presetIndex = -1;
+  for (let index = 0; index <= sectionIndex; index += 1) {
+    if (sections[index].name.toLowerCase().startsWith('preset')) {
+      presetIndex += 1;
+    }
+  }
+  return presetIndex;
+};
+
+const scheduleSaveStatusReset = (setState: (state: Partial<ConfigState>) => void): void => {
+  setTimeout(() => setState({ saveStatus: 'idle' }), SAVE_STATUS_RESET_DELAY_MS);
+};
+
+const parseBladeParamKey = (key: string): { bladeIndex: number; field: string } | null => {
+  const match = key.match(BLADE_PARAM_KEY);
+  if (!match) return null;
+
+  const bladeIndex = Number.parseInt(match[1], 10) - 1;
+  if (bladeIndex < 0 || Number.isNaN(bladeIndex)) return null;
+
+  return { bladeIndex, field: match[2] };
+};
+
+const syncPresetValue = (
+  preset: PresetConfig,
+  activeBladeIndex: number,
+  key: string,
+  value: string
+): PresetConfig => {
+  if (key === 'name' || key === 'font' || key === 'track') {
+    return { ...preset, [key]: value };
+  }
+
+  const parsedBladeParam = parseBladeParamKey(key);
+  if (parsedBladeParam) {
+    const blades = ensureBladeAtIndex(preset.blades, parsedBladeParam.bladeIndex);
+    const blade = blades[parsedBladeParam.bladeIndex];
+    blades[parsedBladeParam.bladeIndex] =
+      parsedBladeParam.field.toLowerCase() === 'style'
+        ? { ...blade, style: value }
+        : { ...blade, params: { ...blade.params, [parsedBladeParam.field]: value } };
+    return { ...preset, blades };
+  }
+
+  const bladeIndex = clampIndex(activeBladeIndex, Math.max(0, preset.blades.length - 1));
+  const blades = ensureBladeAtIndex(preset.blades, bladeIndex);
+  const blade = blades[bladeIndex];
+  blades[bladeIndex] = { ...blade, params: { ...blade.params, [key]: value } };
+  return { ...preset, blades };
+};
+
+const findMissingMediaReferences = async (doc: ConfigDocument): Promise<string[]> => {
+  const missing = new Set<string>();
+  const fonts = await serialManager.listFonts();
+  const tracksByFont = new Map<string, string[]>();
+
+  for (const bank of ['blade_in', 'blade_out'] as const) {
+    for (const preset of doc.banks[bank].presets) {
+      const font = preset.font.trim();
+      if (validateMediaReference(font, fonts) === 'missing') {
+        missing.add(`font "${font || '(empty)'}"`);
+        continue;
+      }
+
+      const normalizedFont = font.toLowerCase();
+      let tracks = tracksByFont.get(normalizedFont);
+      if (!tracks) {
+        tracks = await serialManager.listTracks(font);
+        tracksByFont.set(normalizedFont, tracks);
+      }
+
+      if (validateMediaReference(preset.track, tracks) === 'missing') {
+        missing.add(`track "${preset.track}" for font "${font}"`);
+      }
+    }
+  }
+
+  return Array.from(missing);
 };
 
 const SAMPLE_INI = `[Global]
@@ -89,13 +257,16 @@ slot_31=melt
 
 export const useConfigStore = create<ConfigState>((set, get) => ({
   sections: [],
+  doc: null,
   isConnected: false,
   isDirty: false,
   isLoading: false,
   error: null,
   saveStatus: 'idle',
   logs: [],
+  activeBank: 'blade_in',
   activePresetIndex: 0,
+  activeBladeIndex: 0,
 
   connect: async () => {
     try {
@@ -103,8 +274,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       await serialManager.connect();
       console.log('Serial connected successfully');
       set({ isConnected: true, isLoading: false });
-      
-      // Sync from board after short delay for stability
+
       setTimeout(async () => {
         const { loadFromBoard } = get();
         await loadFromBoard();
@@ -122,16 +292,51 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
 
   loadSample: () => {
     const parsed = parseIni(SAMPLE_INI);
-    set({ sections: parsed, isDirty: false, error: null });
+    const doc = normalizeConfig({
+      bladeInIni: SAMPLE_INI,
+      bladeOutIni: SAMPLE_INI,
+      hwProfile: { numBlades: 1, numButtons: 1, hasBladeDetect: false },
+    });
+    set({
+      sections: parsed,
+      doc,
+      isDirty: false,
+      error: null,
+      activeBank: 'blade_in',
+      activePresetIndex: 0,
+      activeBladeIndex: 0,
+    });
   },
 
   loadFromBoard: async () => {
     try {
       set({ isLoading: true, error: null });
-      const rawData = await serialManager.readConfig();
-      if (!rawData) throw new Error('No data received from board');
-      const parsed = parseIni(rawData);
-      set({ sections: parsed, isDirty: false, isLoading: false });
+      const hwProfile = await serialManager.getHardwareProfile();
+      const bladeInIni = await serialManager.readIniBank('blade_in');
+      const bladeOutIni = await serialManager.readIniBank('blade_out');
+
+      if (!bladeInIni && !bladeOutIni) {
+        throw new Error('No data received from board');
+      }
+
+      const doc = normalizeConfig({
+        bladeInIni: bladeInIni || '',
+        bladeOutIni: bladeOutIni || '',
+        hwProfile,
+      });
+
+      const activeBank = get().activeBank;
+      const maxPresetIndex = Math.max(0, getBankPresets(doc, activeBank).length - 1);
+      const maxBladeIndex = Math.max(0, doc.hardwareProfile.numBlades - 1);
+
+      set({
+        sections: parseIni(bladeInIni || ''),
+        doc,
+        isDirty: false,
+        isLoading: false,
+        activePresetIndex: clampIndex(get().activePresetIndex, maxPresetIndex),
+        activeBladeIndex: clampIndex(get().activeBladeIndex, maxBladeIndex),
+      });
     } catch (error: unknown) {
       set({ error: getErrorMessage(error), isLoading: false });
     }
@@ -139,55 +344,152 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
 
   saveToBoard: async () => {
     try {
-      const { isConnected, sections } = get();
+      const { isConnected, doc, activeBank, activePresetIndex, activeBladeIndex } = get();
       if (!isConnected) throw new Error('Please connect to board before saving');
+      if (!doc) throw new Error('No configuration loaded');
 
       set({ isLoading: true, saveStatus: 'saving', error: null });
 
-      const rawData = generateIni(sections);
-      console.log('Sending INI to board...');
-      const success = await serialManager.writeConfig(rawData);
+      const missingMedia = await findMissingMediaReferences(doc);
+      if (missingMedia.length > 0) {
+        set({
+          error: `Cannot save: missing media references (${missingMedia.join(', ')})`,
+          isLoading: false,
+          saveStatus: 'error',
+        });
+        scheduleSaveStatusReset(set);
+        return;
+      }
 
-      if (success) {
+      const bladeInIni = buildBladeInIni(doc);
+      const bladeOutIni = buildBladeOutIni(doc);
+      console.log('Sending banked INI to board...');
+      const bladeInSaved = await serialManager.writeIniBank('blade_in', bladeInIni);
+      const bladeOutSaved = await serialManager.writeIniBank('blade_out', bladeOutIni);
+
+      if (bladeInSaved && bladeOutSaved) {
         set({ saveStatus: 'rebooting', error: null });
         await serialManager.reconnectAfterReset();
-        const syncedData = await serialManager.readConfig();
-        if (!syncedData) {
+
+        const hwProfile = await serialManager.getHardwareProfile();
+        const syncedBladeIn = await serialManager.readIniBank('blade_in');
+        const syncedBladeOut = await serialManager.readIniBank('blade_out');
+
+        if (!syncedBladeIn && !syncedBladeOut) {
           throw new Error('Board rebooted, but no configuration data was returned');
         }
-        const parsed = parseIni(syncedData);
-        set({ sections: parsed, isDirty: false, isLoading: false, saveStatus: 'success', isConnected: true });
+
+        const syncedDoc = normalizeConfig({
+          bladeInIni: syncedBladeIn || bladeInIni,
+          bladeOutIni: syncedBladeOut || bladeOutIni,
+          hwProfile,
+        });
+
+        const maxPresetIndex = Math.max(0, getBankPresets(syncedDoc, activeBank).length - 1);
+        const maxBladeIndex = Math.max(0, syncedDoc.hardwareProfile.numBlades - 1);
+
+        set({
+          sections: parseIni(syncedBladeIn || bladeInIni),
+          doc: syncedDoc,
+          isDirty: false,
+          isLoading: false,
+          saveStatus: 'success',
+          isConnected: true,
+          activePresetIndex: clampIndex(activePresetIndex, maxPresetIndex),
+          activeBladeIndex: clampIndex(activeBladeIndex, maxBladeIndex),
+        });
         console.log('Save sequence finished successfully and board re-synced');
-        setTimeout(() => set({ saveStatus: 'idle' }), 3000);
+        scheduleSaveStatusReset(set);
       } else {
-        set({ error: 'Board failed to confirm save. Check SD card and serial connection.', isLoading: false, saveStatus: 'error' });
-        setTimeout(() => set({ saveStatus: 'idle' }), 3000);
+        set({
+          error: 'Board failed to confirm save. Check SD card and serial connection.',
+          isLoading: false,
+          saveStatus: 'error',
+        });
+        scheduleSaveStatusReset(set);
       }
     } catch (error: unknown) {
       console.error('Final Save Error:', error);
       set({ error: getErrorMessage(error), isLoading: false, saveStatus: 'error', isConnected: false });
-      setTimeout(() => set({ saveStatus: 'idle' }), 3000);
+      scheduleSaveStatusReset(set);
     }
   },
 
   updateParam: (sectionIndex, key, value) => {
     set((state) => {
       const newSections = [...state.sections];
-      if (newSections[sectionIndex]) {
-        newSections[sectionIndex] = {
-          ...newSections[sectionIndex],
-          params: { ...newSections[sectionIndex].params, [key]: value },
-        };
+      if (!newSections[sectionIndex]) {
+        return {};
       }
-      return { sections: newSections, isDirty: true };
+
+      newSections[sectionIndex] = {
+        ...newSections[sectionIndex],
+        params: { ...newSections[sectionIndex].params, [key]: value },
+      };
+
+      if (!state.doc) {
+        return { sections: newSections, isDirty: true };
+      }
+
+      const presetIndex = resolvePresetIndexFromSectionIndex(newSections, sectionIndex);
+      if (presetIndex < 0) {
+        return { sections: newSections, isDirty: true };
+      }
+
+      const presets = [...getBankPresets(state.doc, state.activeBank)];
+      if (!presets[presetIndex]) {
+        return { sections: newSections, isDirty: true };
+      }
+
+      presets[presetIndex] = syncPresetValue(
+        presets[presetIndex],
+        state.activeBladeIndex,
+        key,
+        value
+      );
+
+      return {
+        sections: newSections,
+        doc: updateDocBankPresets(state.doc, state.activeBank, presets),
+        isDirty: true,
+      };
     });
   },
 
-  setActivePresetIndex: (index) => set({ activePresetIndex: index }),
+  setActiveBank: (bank) => {
+    set((state) => {
+      if (!state.doc) {
+        return { activeBank: bank };
+      }
+
+      const maxPresetIndex = Math.max(0, getBankPresets(state.doc, bank).length - 1);
+      return {
+        activeBank: bank,
+        activePresetIndex: clampIndex(state.activePresetIndex, maxPresetIndex),
+      };
+    });
+  },
+
+  setActivePresetIndex: (index) => {
+    set((state) => {
+      if (!state.doc) {
+        return { activePresetIndex: Math.max(0, index) };
+      }
+      const maxPresetIndex = Math.max(0, getBankPresets(state.doc, state.activeBank).length - 1);
+      return { activePresetIndex: clampIndex(index, maxPresetIndex) };
+    });
+  },
+
+  setActiveBladeIndex: (index) => {
+    set((state) => {
+      const maxBladeIndex = Math.max(0, (state.doc?.hardwareProfile.numBlades ?? 1) - 1);
+      return { activeBladeIndex: clampIndex(index, maxBladeIndex) };
+    });
+  },
 
   addPreset: () => {
-    set((state) => ({
-      sections: [
+    set((state) => {
+      const sections = [
         ...state.sections,
         {
           name: 'preset',
@@ -200,14 +502,126 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
             style: 'standard',
           },
         },
-      ],
-      isDirty: true,
-    }));
+      ];
+
+      if (!state.doc) {
+        return { sections, isDirty: true };
+      }
+
+      const presets = [...getBankPresets(state.doc, state.activeBank)];
+      presets.push(createDefaultPreset(state.doc.hardwareProfile.numBlades));
+
+      return {
+        sections,
+        doc: updateDocBankPresets(state.doc, state.activeBank, presets),
+        isDirty: true,
+        activePresetIndex: presets.length - 1,
+      };
+    });
+  },
+
+  reorderPreset: (from, to) => {
+    set((state) => {
+      if (!state.doc) {
+        return {};
+      }
+
+      const presets = [...getBankPresets(state.doc, state.activeBank)];
+      const maxIndex = presets.length - 1;
+      if (
+        from < 0 ||
+        to < 0 ||
+        from > maxIndex ||
+        to > maxIndex ||
+        from === to
+      ) {
+        return {};
+      }
+
+      const [moved] = presets.splice(from, 1);
+      presets.splice(to, 0, moved);
+
+      let activePresetIndex = state.activePresetIndex;
+      if (state.activePresetIndex === from) {
+        activePresetIndex = to;
+      } else if (from < state.activePresetIndex && to >= state.activePresetIndex) {
+        activePresetIndex -= 1;
+      } else if (from > state.activePresetIndex && to <= state.activePresetIndex) {
+        activePresetIndex += 1;
+      }
+
+      return {
+        doc: updateDocBankPresets(state.doc, state.activeBank, presets),
+        isDirty: true,
+        activePresetIndex: clampIndex(activePresetIndex, presets.length - 1),
+      };
+    });
+  },
+
+  deletePreset: (index) => {
+    set((state) => {
+      if (!state.doc) {
+        return {};
+      }
+
+      const presets = [...getBankPresets(state.doc, state.activeBank)];
+      if (index < 0 || index >= presets.length) {
+        return {};
+      }
+
+      presets.splice(index, 1);
+
+      let activePresetIndex = state.activePresetIndex;
+      if (presets.length === 0) {
+        activePresetIndex = 0;
+      } else if (state.activePresetIndex > index) {
+        activePresetIndex = state.activePresetIndex - 1;
+      } else if (state.activePresetIndex === index) {
+        activePresetIndex = Math.max(0, Math.min(index - 1, presets.length - 1));
+      }
+
+      return {
+        doc: updateDocBankPresets(state.doc, state.activeBank, presets),
+        isDirty: true,
+        activePresetIndex,
+      };
+    });
+  },
+
+  updateBladeParam: (presetIndex, bladeIndex, key, value) => {
+    set((state) => {
+      if (!state.doc) {
+        return {};
+      }
+
+      const presets = [...getBankPresets(state.doc, state.activeBank)];
+      const preset = presets[presetIndex];
+      if (!preset || bladeIndex < 0) {
+        return {};
+      }
+
+      const blades = ensureBladeAtIndex(preset.blades, bladeIndex);
+      const blade = blades[bladeIndex];
+      blades[bladeIndex] =
+        key.toLowerCase() === 'style'
+          ? { ...blade, style: value }
+          : { ...blade, params: { ...blade.params, [key]: value } };
+
+      presets[presetIndex] = {
+        ...preset,
+        blades,
+      };
+
+      return {
+        doc: updateDocBankPresets(state.doc, state.activeBank, presets),
+        isDirty: true,
+      };
+    });
   },
 
   addLog: (msg) => {
     set((state) => ({
-      logs: [...state.logs.slice(-49), msg] // Keep last 50 lines
+      logs: [...state.logs.slice(-49), msg],
     }));
   },
 }));
