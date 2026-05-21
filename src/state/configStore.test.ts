@@ -158,25 +158,39 @@ describe('configStore save lifecycle', () => {
     vi.unstubAllGlobals();
   });
 
-  it('reorders presets in active bank', () => {
+  it('reorders presets in active bank and syncs preset sections', () => {
+    const doc = makeDoc();
+    useConfigStore.setState({
+      doc,
+      sections: parseIni(buildBladeInIni(doc)),
+      activeBank: 'blade_in',
+      activePresetIndex: 0,
+    });
+
     useConfigStore.getState().reorderPreset(0, 2);
 
     const state = useConfigStore.getState() as ReturnType<typeof useConfigStore.getState> & {
       doc: ConfigDocument;
     };
+    const sectionPresetNames = state.sections
+      .filter((section) => section.name.toLowerCase().startsWith('preset'))
+      .map((section) => section.params.name);
+
     expect(state.doc.banks.blade_in.presets.map((preset) => preset.name)).toEqual([
       'Second',
       'Third',
       'First',
     ]);
+    expect(sectionPresetNames).toEqual(['Second', 'Third', 'First']);
     expect(state.doc.banks.blade_out.presets.map((preset) => preset.name)).toEqual(['OutOnly']);
+    expect(state.activePresetIndex).toBe(2);
   });
 
-  it('deletes active preset and updates active index safely', () => {
+  it('deletes active preset, updates active index safely, and syncs sections', () => {
     const doc = makeDoc();
-    doc.banks.blade_in.presets = [doc.banks.blade_in.presets[0], doc.banks.blade_in.presets[1]];
     useConfigStore.setState({
       doc,
+      sections: parseIni(buildBladeInIni(doc)),
       activeBank: 'blade_in',
       activePresetIndex: 1,
     });
@@ -186,8 +200,39 @@ describe('configStore save lifecycle', () => {
     const state = useConfigStore.getState() as ReturnType<typeof useConfigStore.getState> & {
       doc: ConfigDocument;
     };
-    expect(state.doc.banks.blade_in.presets.map((preset) => preset.name)).toEqual(['First']);
+    const sectionPresetNames = state.sections
+      .filter((section) => section.name.toLowerCase().startsWith('preset'))
+      .map((section) => section.params.name);
+
+    expect(state.doc.banks.blade_in.presets.map((preset) => preset.name)).toEqual(['First', 'Third']);
+    expect(sectionPresetNames).toEqual(['First', 'Third']);
     expect(state.activePresetIndex).toBe(0);
+  });
+
+  it('blocks deleting the last remaining preset in active bank', () => {
+    const doc = makeDoc();
+    doc.banks.blade_in.presets = [doc.banks.blade_in.presets[0]];
+    useConfigStore.setState({
+      doc,
+      sections: parseIni(buildBladeInIni(doc)),
+      activeBank: 'blade_in',
+      activePresetIndex: 0,
+      isDirty: false,
+    });
+
+    useConfigStore.getState().deletePreset(0);
+
+    const state = useConfigStore.getState() as ReturnType<typeof useConfigStore.getState> & {
+      doc: ConfigDocument;
+    };
+    const sectionPresetNames = state.sections
+      .filter((section) => section.name.toLowerCase().startsWith('preset'))
+      .map((section) => section.params.name);
+
+    expect(state.doc.banks.blade_in.presets.map((preset) => preset.name)).toEqual(['First']);
+    expect(sectionPresetNames).toEqual(['First']);
+    expect(state.activePresetIndex).toBe(0);
+    expect(state.isDirty).toBe(false);
   });
 
   it('syncs global/buttons updateParam edits into doc and bank serialization', async () => {

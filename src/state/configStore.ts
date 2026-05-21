@@ -593,10 +593,11 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
 
       const presets = [...getBankPresets(state.doc, state.activeBank)];
       presets.push(createDefaultPreset(state.doc.hardwareProfile.numBlades));
+      const nextDoc = updateDocBankPresets(state.doc, state.activeBank, presets);
 
       return {
-        sections,
-        doc: updateDocBankPresets(state.doc, state.activeBank, presets),
+        sections: buildSectionsForBank(nextDoc, state.activeBank),
+        doc: nextDoc,
         isDirty: true,
         activePresetIndex: presets.length - 1,
       };
@@ -633,8 +634,11 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
         activePresetIndex += 1;
       }
 
+      const nextDoc = updateDocBankPresets(state.doc, state.activeBank, presets);
+
       return {
-        doc: updateDocBankPresets(state.doc, state.activeBank, presets),
+        sections: buildSectionsForBank(nextDoc, state.activeBank),
+        doc: nextDoc,
         isDirty: true,
         activePresetIndex: clampIndex(activePresetIndex, presets.length - 1),
       };
@@ -648,25 +652,26 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       }
 
       const presets = [...getBankPresets(state.doc, state.activeBank)];
-      if (index < 0 || index >= presets.length) {
+      if (index < 0 || index >= presets.length || presets.length <= 1) {
         return {};
       }
 
       presets.splice(index, 1);
 
       let activePresetIndex = state.activePresetIndex;
-      if (presets.length === 0) {
-        activePresetIndex = 0;
-      } else if (state.activePresetIndex > index) {
+      if (state.activePresetIndex > index) {
         activePresetIndex = state.activePresetIndex - 1;
       } else if (state.activePresetIndex === index) {
-        activePresetIndex = Math.max(0, Math.min(index - 1, presets.length - 1));
+        activePresetIndex = Math.max(0, index - 1);
       }
 
+      const nextDoc = updateDocBankPresets(state.doc, state.activeBank, presets);
+
       return {
-        doc: updateDocBankPresets(state.doc, state.activeBank, presets),
+        sections: buildSectionsForBank(nextDoc, state.activeBank),
+        doc: nextDoc,
         isDirty: true,
-        activePresetIndex,
+        activePresetIndex: clampIndex(activePresetIndex, presets.length - 1),
       };
     });
   },

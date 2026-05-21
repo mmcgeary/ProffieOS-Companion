@@ -22,6 +22,7 @@ export const PresetList: React.FC<PresetListProps> = ({
   onReorderPreset,
 }) => {
   const [dragSourceIndex, setDragSourceIndex] = React.useState<number | null>(null);
+  const canDeletePreset = presets.length > 1;
 
   const handleDragStart = (index: number) => (event: React.DragEvent<HTMLButtonElement>) => {
     setDragSourceIndex(index);
@@ -113,6 +114,7 @@ export const PresetList: React.FC<PresetListProps> = ({
 
             <button
               type="button"
+              disabled={!canDeletePreset}
               onClick={(event) => {
                 event.stopPropagation();
                 onDeletePreset(index);
@@ -122,7 +124,8 @@ export const PresetList: React.FC<PresetListProps> = ({
                 borderRadius: '6px',
                 background: 'var(--bg)',
                 color: 'var(--text)',
-                cursor: 'pointer',
+                cursor: canDeletePreset ? 'pointer' : 'not-allowed',
+                opacity: canDeletePreset ? 1 : 0.5,
                 padding: '6px 10px',
                 fontSize: '12px',
               }}

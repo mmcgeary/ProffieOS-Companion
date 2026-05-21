@@ -135,6 +135,7 @@ describe('preset UI integration', () => {
 
   afterEach(() => {
     cleanup();
+    vi.restoreAllMocks();
     vi.clearAllMocks();
   });
 
@@ -144,6 +145,7 @@ describe('preset UI integration', () => {
   });
 
   it('deletes presets via UI and syncs store doc + sections', () => {
+    const setActiveBankSpy = vi.spyOn(useConfigStore.getState(), 'setActiveBank');
     render(<PresetEditor />);
     const deleteButtons = screen.getAllByRole('button', { name: 'Delete' });
     expect(deleteButtons.length).toBe(3);
@@ -154,9 +156,11 @@ describe('preset UI integration', () => {
     expect(state.doc?.banks.blade_in.presets.map((preset) => preset.name)).toEqual(['Blue', 'Red']);
     expect(getPresetNamesFromSections()).toEqual(['Blue', 'Red']);
     expect(state.activePresetIndex).toBe(0);
+    expect(setActiveBankSpy).not.toHaveBeenCalled();
   });
 
   it('reorders presets via drag/drop and syncs store doc + sections', () => {
+    const setActiveBankSpy = vi.spyOn(useConfigStore.getState(), 'setActiveBank');
     render(<PresetEditor />);
 
     const dragHandles = screen.getAllByLabelText('Drag preset');
@@ -177,6 +181,30 @@ describe('preset UI integration', () => {
     ]);
     expect(getPresetNamesFromSections()).toEqual(['Green', 'Red', 'Blue']);
     expect(state.activePresetIndex).toBe(2);
+    expect(setActiveBankSpy).not.toHaveBeenCalled();
+  });
+
+  it('blocks deleting the last remaining preset via UI', () => {
+    const doc = makeDoc(2);
+    doc.banks.blade_in.presets = [doc.banks.blade_in.presets[0]];
+    useConfigStore.setState({
+      sections: parseIni(buildBladeInIni(doc)),
+      doc,
+      activeBank: 'blade_in',
+      activePresetIndex: 0,
+      activeBladeIndex: 0,
+      isDirty: false,
+    });
+
+    render(<PresetEditor />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+
+    const state = useConfigStore.getState();
+    expect(state.doc?.banks.blade_in.presets.map((preset) => preset.name)).toEqual(['Blue']);
+    expect(getPresetNamesFromSections()).toEqual(['Blue']);
+    expect(state.activePresetIndex).toBe(0);
+    expect(state.isDirty).toBe(false);
   });
 
   it('renders Blade 1..N editors from hardware profile', () => {

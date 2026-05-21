@@ -150,7 +150,6 @@ export const PresetEditor: React.FC = () => {
     addPreset,
     reorderPreset,
     deletePreset,
-    setActiveBank,
     setActivePresetIndex,
     setActiveBladeIndex,
   } = useConfigStore();
@@ -279,10 +278,6 @@ export const PresetEditor: React.FC = () => {
     updateBladeParam(activePresetIndex, selectedBladeIndex, key, value);
   };
 
-  const refreshSectionsFromDoc = () => {
-    setActiveBank(activeBank);
-  };
-
   const styleString = buildStyleString(selectedBlade);
 
   return (
@@ -301,18 +296,9 @@ export const PresetEditor: React.FC = () => {
         presets={presets.map((preset) => ({ name: preset.name }))}
         activePresetIndex={activePresetIndex}
         onSelectPreset={setActivePresetIndex}
-        onAddPreset={() => {
-          addPreset();
-          refreshSectionsFromDoc();
-        }}
-        onDeletePreset={(index) => {
-          deletePreset(index);
-          refreshSectionsFromDoc();
-        }}
-        onReorderPreset={(from, to) => {
-          reorderPreset(from, to);
-          refreshSectionsFromDoc();
-        }}
+        onAddPreset={addPreset}
+        onDeletePreset={deletePreset}
+        onReorderPreset={reorderPreset}
       />
 
       <section style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
