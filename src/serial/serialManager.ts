@@ -287,24 +287,35 @@ export class SerialManager {
       await writer.write(this.encoder.encode('---END_INI---\n'));
     };
 
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       let settled = false;
       let hasStartedStreaming = false;
       let timeout: ReturnType<typeof setTimeout> | undefined;
 
-      const finish = (result: boolean) => {
-        if (settled) return;
-        settled = true;
+      const clearState = () => {
         this.onLineReceived = null;
         if (timeout) {
           clearTimeout(timeout);
           timeout = undefined;
         }
+      };
+
+      const finishResolve = (result: boolean) => {
+        if (settled) return;
+        settled = true;
+        clearState();
         resolve(result);
       };
 
+      const finishReject = (error: unknown) => {
+        if (settled) return;
+        settled = true;
+        clearState();
+        reject(error instanceof Error ? error : new Error(String(error)));
+      };
+
       timeout = setTimeout(() => {
-        finish(false);
+        finishResolve(false);
       }, 15000);
 
       this.onLineReceived = (line) => {
@@ -315,22 +326,22 @@ export class SerialManager {
           hasStartedStreaming = true;
           void streamContent().catch((error: unknown) => {
             console.error('[Serial] Failed while streaming config:', error);
-            finish(false);
+            finishReject(error);
           });
           return;
         }
 
         if (line.includes('SAVE_OK')) {
-          finish(true);
+          finishResolve(true);
           return;
         }
 
         if (line.toLowerCase().includes('error') || line.includes('SAVE_FAIL')) {
-          finish(false);
+          finishResolve(false);
         }
       };
 
-      void writer.write(this.encoder.encode(`${command}\n`)).catch(() => finish(false));
+      void writer.write(this.encoder.encode(`${command}\n`)).catch(finishReject);
     });
   }
 
@@ -341,13 +352,19 @@ export class SerialManager {
       let settled = false;
       const lines: string[] = [];
       let idleTimeout: ReturnType<typeof setTimeout> | undefined;
+      let noResponseTimeout: ReturnType<typeof setTimeout> | undefined;
       let timeout: ReturnType<typeof setTimeout> | undefined;
+      let hasReceivedLine = false;
 
       const clearState = () => {
         this.onLineReceived = null;
         if (idleTimeout) {
           clearTimeout(idleTimeout);
           idleTimeout = undefined;
+        }
+        if (noResponseTimeout) {
+          clearTimeout(noResponseTimeout);
+          noResponseTimeout = undefined;
         }
         if (timeout) {
           clearTimeout(timeout);
@@ -376,14 +393,36 @@ export class SerialManager {
         idleTimeout = setTimeout(() => finishResolve(), 200);
       };
 
+      const scheduleNoResponseResolve = () => {
+        if (settled || hasReceivedLine) {
+          return;
+        }
+        if (noResponseTimeout) {
+          clearTimeout(noResponseTimeout);
+        }
+        noResponseTimeout = setTimeout(() => {
+          if (!hasReceivedLine) {
+            finishResolve();
+          }
+        }, 300);
+      };
+
       timeout = setTimeout(() => finishReject(new Error('Read timeout')), 5000);
 
       this.onLineReceived = (line) => {
+        hasReceivedLine = true;
+        if (noResponseTimeout) {
+          clearTimeout(noResponseTimeout);
+          noResponseTimeout = undefined;
+        }
         lines.push(line);
         scheduleIdleResolve();
       };
 
-      void writer.write(this.encoder.encode(`${command}\n`)).catch(finishReject);
+      void writer
+        .write(this.encoder.encode(`${command}\n`))
+        .then(() => scheduleNoResponseResolve())
+        .catch(finishReject);
     });
   }
 

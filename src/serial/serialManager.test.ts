@@ -111,6 +111,18 @@ describe('SerialManager', () => {
     expect((manager as unknown as SerialManagerInternals).onLineReceived).toBeNull();
   });
 
+  it('writeConfig rejects when initial command write has a transport failure', async () => {
+    const manager = new SerialManager();
+    const writeMock = vi.fn().mockRejectedValue(new Error('transport write failed'));
+    attachWriter(manager, writeMock);
+
+    const writePromise = manager.writeConfig('x=1');
+
+    await expect(writePromise).rejects.toThrow('transport write failed');
+    expect(decodedWrites(writeMock)).toEqual(['WRITE_INI\n']);
+    expect((manager as unknown as SerialManagerInternals).onLineReceived).toBeNull();
+  });
+
   it('sends READ_INI_BANK blade_out and parses ini payload', async () => {
     const manager = new SerialManager();
     const writeMock = vi.fn().mockResolvedValue(undefined);
@@ -236,6 +248,21 @@ describe('SerialManager', () => {
     await vi.advanceTimersByTimeAsync(350);
 
     await fontsExpectation;
+    expect((manager as unknown as SerialManagerInternals).onLineReceived).toBeNull();
+  });
+
+  it('resolves list_fonts with an empty array when command returns no lines', async () => {
+    const manager = new SerialManager();
+    const writeMock = vi.fn().mockResolvedValue(undefined);
+    attachWriter(manager, writeMock);
+
+    const fontsPromise = manager.listFonts();
+
+    expect(decodedWrites(writeMock)).toEqual(['list_fonts\n']);
+
+    await vi.advanceTimersByTimeAsync(6000);
+
+    await expect(fontsPromise).resolves.toEqual([]);
     expect((manager as unknown as SerialManagerInternals).onLineReceived).toBeNull();
   });
 
