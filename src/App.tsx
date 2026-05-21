@@ -3,7 +3,6 @@ import { useConfigStore } from './state/configStore'
 import { PresetEditor } from './components/PresetEditor'
 import { GlobalSettings } from './components/GlobalSettings'
 import { ButtonMapping } from './components/ButtonMapping'
-import { StyleTuning } from './components/StyleTuning'
 import { Radio, Save, Power, Wifi, Terminal } from 'lucide-react'
 
 const App: React.FC = () => {
@@ -15,7 +14,6 @@ const App: React.FC = () => {
     { id: 'presets', label: 'Presets', component: <PresetEditor /> },
     { id: 'global', label: 'Global', component: <GlobalSettings /> },
     { id: 'buttons', label: 'Buttons', component: <ButtonMapping /> },
-    { id: 'tuning', label: 'Tuning', component: <StyleTuning /> },
   ]
 
   const activeComponent = tabs.find(t => t.id === activeTab)?.component

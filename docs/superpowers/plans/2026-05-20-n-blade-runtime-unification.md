@@ -544,7 +544,7 @@ git commit -m "feat(companion): support banked n-blade preset operations and sav
 - Delete: `/Users/matthew.mcgeary/Copilot_workspace/ProffieOS-Companion/.worktrees/n-blade-platform/src/components/StyleTuning.tsx`
 - Create: `/Users/matthew.mcgeary/Copilot_workspace/ProffieOS-Companion/.worktrees/n-blade-platform/src/components/PresetList.tsx`
 
-- [ ] **Step 1: Write failing UI/store integration tests for tab and list behavior**
+- [x] **Step 1: Write failing UI/store integration tests for tab and list behavior**
 
 ```ts
 import { render, screen } from '@testing-library/react'
@@ -568,7 +568,7 @@ it('renders Blade 1..N editors from hardware profile', () => {
 })
 ```
 
-- [ ] **Step 2: Run tests to verify failure**
+- [x] **Step 2: Run tests to verify failure**
 
 Run:
 
@@ -579,7 +579,7 @@ npm test -- src/state/configStore.test.ts src/components/styleTuningConfig.test.
 
 Expected: FAIL for outdated tab assumptions and missing new interactions.
 
-- [ ] **Step 3: Remove Tuning tab and wire Presets-only tuning**
+- [x] **Step 3: Remove Tuning tab and wire Presets-only tuning**
 
 ```tsx
 const tabs = [
@@ -589,7 +589,7 @@ const tabs = [
 ]
 ```
 
-- [ ] **Step 4: Implement drag-drop reorder + delete UI**
+- [x] **Step 4: Implement drag-drop reorder + delete UI**
 
 ```tsx
 // Preset row actions
@@ -597,7 +597,7 @@ const tabs = [
 // drag handlers call reorderPreset(from, to)
 ```
 
-- [ ] **Step 5: Implement per-blade full controls and SD selectors**
+- [x] **Step 5: Implement per-blade full controls and SD selectors**
 
 ```tsx
 <select
@@ -608,7 +608,7 @@ const tabs = [
 </select>
 ```
 
-- [ ] **Step 6: Run full app test and build**
+- [x] **Step 6: Run full app test and build**
 
 Run:
 
@@ -620,7 +620,7 @@ npm run build
 
 Expected: tests pass, build succeeds.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 cd /Users/matthew.mcgeary/Copilot_workspace/ProffieOS-Companion/.worktrees/n-blade-platform
