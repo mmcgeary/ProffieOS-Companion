@@ -188,6 +188,86 @@ describe('configStore save lifecycle', () => {
     expect(state.activePresetIndex).toBe(0);
   });
 
+  it('syncs global/buttons updateParam edits into doc and bank serialization', async () => {
+    useConfigStore.setState({
+      sections: [
+        { name: 'global', params: { volume: '80', num_buttons: '2' } },
+        { name: 'buttons_on', params: { slot_5: 'blast' } },
+        { name: 'buttons_off', params: { slot_0: 'on_or_volume_up' } },
+        {
+          name: 'preset1',
+          params: {
+            name: 'First',
+            font: 'Kestis',
+            track: 'tracks/first.wav',
+            blade1_style: 'standard',
+            blade2_style: 'pulse',
+            blade1_base_color: 'Blue',
+            blade2_base_color: 'Cyan',
+          },
+        },
+      ],
+      doc: makeDoc(),
+    });
+
+    const { updateParam, saveToBoard } = useConfigStore.getState();
+    updateParam(0, 'volume', '95');
+    updateParam(1, 'slot_5', 'toggle_multi_blast');
+    updateParam(2, 'slot_0', 'prev_preset_if_not_volume_menu');
+
+    const state = useConfigStore.getState() as ReturnType<typeof useConfigStore.getState> & {
+      doc: ConfigDocument;
+    };
+
+    expect(state.doc.shared.global.volume).toBe('95');
+    expect(state.doc.shared.buttonsOn.slot_5).toBe('toggle_multi_blast');
+    expect(state.doc.shared.buttonsOff.slot_0).toBe('prev_preset_if_not_volume_menu');
+
+    await saveToBoard();
+
+    const writtenBanks = serialManagerMock.writeIniBank.mock.calls.map(([bank, content]) => ({
+      bank,
+      content,
+    }));
+    expect(writtenBanks).toHaveLength(2);
+    for (const { content } of writtenBanks) {
+      expect(content).toContain('volume=95');
+      expect(content).toContain('slot_5=toggle_multi_blast');
+      expect(content).toContain('slot_0=prev_preset_if_not_volume_menu');
+    }
+  });
+
+  it('updateBladeParam updates active-bank blade and keeps preset section synced', () => {
+    useConfigStore.setState({
+      sections: [
+        { name: 'global', params: { volume: '80' } },
+        {
+          name: 'preset1',
+          params: {
+            name: 'First',
+            font: 'Kestis',
+            track: 'tracks/first.wav',
+            blade1_style: 'standard',
+            blade2_style: 'pulse',
+            blade1_base_color: 'Blue',
+            blade2_base_color: 'Cyan',
+          },
+        },
+      ],
+      doc: makeDoc(),
+      activeBank: 'blade_in',
+    });
+
+    useConfigStore.getState().updateBladeParam(0, 1, 'base_color', 'Purple');
+
+    const state = useConfigStore.getState() as ReturnType<typeof useConfigStore.getState> & {
+      doc: ConfigDocument;
+    };
+    expect(state.doc.banks.blade_in.presets[0].blades[1].params.base_color).toBe('Purple');
+    expect(state.doc.banks.blade_out.presets[0].blades[1].params.base_color).toBe('Orange');
+    expect(state.sections[1]?.params.blade2_base_color).toBe('Purple');
+  });
+
   it('blocks save when media is missing', async () => {
     const doc = makeDoc();
     doc.banks.blade_in.presets[0].font = 'MissingFont';

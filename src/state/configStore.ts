@@ -112,18 +112,87 @@ const createDefaultPreset = (numBlades: number): PresetConfig => ({
   })),
 });
 
+const isPresetSection = (section: IniSection | undefined): boolean =>
+  Boolean(section && section.name.toLowerCase().startsWith('preset'));
+
 const resolvePresetIndexFromSectionIndex = (sections: IniSection[], sectionIndex: number): number => {
-  if (!sections[sectionIndex] || !sections[sectionIndex].name.toLowerCase().startsWith('preset')) {
+  if (!isPresetSection(sections[sectionIndex])) {
     return -1;
   }
 
   let presetIndex = -1;
   for (let index = 0; index <= sectionIndex; index += 1) {
-    if (sections[index].name.toLowerCase().startsWith('preset')) {
+    if (isPresetSection(sections[index])) {
       presetIndex += 1;
     }
   }
   return presetIndex;
+};
+
+const resolveSectionIndexFromPresetIndex = (sections: IniSection[], presetIndex: number): number => {
+  if (presetIndex < 0) return -1;
+
+  let resolvedPresetIndex = -1;
+  for (let index = 0; index < sections.length; index += 1) {
+    if (isPresetSection(sections[index])) {
+      resolvedPresetIndex += 1;
+      if (resolvedPresetIndex === presetIndex) {
+        return index;
+      }
+    }
+  }
+
+  return -1;
+};
+
+const updateDocSharedValue = (
+  doc: ConfigDocument,
+  sectionName: string,
+  key: string,
+  value: string
+): ConfigDocument | null => {
+  const normalizedSectionName = sectionName.toLowerCase();
+
+  if (normalizedSectionName === 'global') {
+    return {
+      ...doc,
+      shared: {
+        ...doc.shared,
+        global: {
+          ...doc.shared.global,
+          [key]: value,
+        },
+      },
+    };
+  }
+
+  if (normalizedSectionName === 'buttons_on') {
+    return {
+      ...doc,
+      shared: {
+        ...doc.shared,
+        buttonsOn: {
+          ...doc.shared.buttonsOn,
+          [key]: value,
+        },
+      },
+    };
+  }
+
+  if (normalizedSectionName === 'buttons_off') {
+    return {
+      ...doc,
+      shared: {
+        ...doc.shared,
+        buttonsOff: {
+          ...doc.shared.buttonsOff,
+          [key]: value,
+        },
+      },
+    };
+  }
+
+  return null;
 };
 
 const scheduleSaveStatusReset = (setState: (state: Partial<ConfigState>) => void): void => {
@@ -433,6 +502,14 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
 
       const presetIndex = resolvePresetIndexFromSectionIndex(newSections, sectionIndex);
       if (presetIndex < 0) {
+        const sharedDoc = updateDocSharedValue(state.doc, newSections[sectionIndex].name, key, value);
+        if (sharedDoc) {
+          return {
+            sections: newSections,
+            doc: sharedDoc,
+            isDirty: true,
+          };
+        }
         return { sections: newSections, isDirty: true };
       }
 
@@ -612,7 +689,21 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
         blades,
       };
 
+      const newSections = [...state.sections];
+      const sectionIndex = resolveSectionIndexFromPresetIndex(newSections, presetIndex);
+      if (sectionIndex >= 0 && newSections[sectionIndex]) {
+        const sectionKey = `blade${bladeIndex + 1}_${key}`;
+        newSections[sectionIndex] = {
+          ...newSections[sectionIndex],
+          params: {
+            ...newSections[sectionIndex].params,
+            [sectionKey]: value,
+          },
+        };
+      }
+
       return {
+        sections: newSections,
         doc: updateDocBankPresets(state.doc, state.activeBank, presets),
         isDirty: true,
       };
