@@ -175,6 +175,70 @@ describe('SerialManager', () => {
     expect((manager as unknown as SerialManagerInternals).onLineReceived).toBeNull();
   });
 
+  it('waits for a delayed first command response before collecting profile lines', async () => {
+    const manager = new SerialManager();
+    const writeMock = vi.fn().mockResolvedValue(undefined);
+    attachWriter(manager, writeMock);
+
+    const profilePromise = manager.getHardwareProfile();
+    const settleSpy = vi.fn();
+    void profilePromise.then(settleSpy, settleSpy);
+
+    await vi.advanceTimersByTimeAsync(220);
+    expect(settleSpy).not.toHaveBeenCalled();
+
+    emitLine(manager, 'num_blades=3');
+    emitLine(manager, 'num_buttons=2');
+    emitLine(manager, 'blade_detect=1');
+    await vi.advanceTimersByTimeAsync(250);
+
+    await expect(profilePromise).resolves.toEqual({
+      numBlades: 3,
+      numButtons: 2,
+      hasBladeDetect: true,
+    });
+    expect((manager as unknown as SerialManagerInternals).onLineReceived).toBeNull();
+  });
+
+  it('falls back when numeric hardware profile values are not strict integers', async () => {
+    const manager = new SerialManager();
+    const writeMock = vi.fn().mockResolvedValue(undefined);
+    attachWriter(manager, writeMock);
+
+    const profilePromise = manager.getHardwareProfile();
+
+    emitLine(manager, 'num_blades=3abc');
+    emitLine(manager, 'num_buttons=2');
+    emitLine(manager, 'blade_detect=true');
+    await vi.advanceTimersByTimeAsync(250);
+
+    await expect(profilePromise).resolves.toEqual({
+      numBlades: 1,
+      numButtons: 2,
+      hasBladeDetect: true,
+    });
+    expect((manager as unknown as SerialManagerInternals).onLineReceived).toBeNull();
+  });
+
+  it('rejects list command when initial write rejects after a delay', async () => {
+    const manager = new SerialManager();
+    const writeMock = vi.fn().mockImplementation(
+      () =>
+        new Promise<void>((_, reject) => {
+          setTimeout(() => reject(new Error('write failed')), 300);
+        })
+    );
+    attachWriter(manager, writeMock);
+
+    const fontsPromise = manager.listFonts();
+    const fontsExpectation = expect(fontsPromise).rejects.toThrow('write failed');
+
+    await vi.advanceTimersByTimeAsync(350);
+
+    await fontsExpectation;
+    expect((manager as unknown as SerialManagerInternals).onLineReceived).toBeNull();
+  });
+
   it('collects list_fonts output into array', async () => {
     const manager = new SerialManager();
     const writeMock = vi.fn().mockResolvedValue(undefined);

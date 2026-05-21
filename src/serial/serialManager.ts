@@ -29,11 +29,11 @@ const HW_PROFILE_BLADE_DETECT_KEYS = new Set([
 const TRUTHY_VALUES = new Set(['1', 'true', 'yes', 'on']);
 
 const parsePositiveInteger = (value: string): number | null => {
-  const parsed = Number.parseInt(value, 10);
-  if (Number.isNaN(parsed) || parsed <= 0) {
+  const normalized = value.trim();
+  if (!/^[1-9]\d*$/.test(normalized)) {
     return null;
   }
-  return parsed;
+  return Number.parseInt(normalized, 10);
 };
 
 const parseHardwareProfile = (lines: string[]): HardwareProfile => {
@@ -382,8 +382,6 @@ export class SerialManager {
         lines.push(line);
         scheduleIdleResolve();
       };
-
-      scheduleIdleResolve();
 
       void writer.write(this.encoder.encode(`${command}\n`)).catch(finishReject);
     });
