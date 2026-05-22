@@ -23,6 +23,8 @@ const HW_PROFILE_NUM_BLADE_KEYS = new Set(['num_blades', 'numblades']);
 const HW_PROFILE_NUM_BUTTON_KEYS = new Set(['num_buttons', 'numbuttons']);
 const HW_PROFILE_BLADE_DETECT_STATE_KEYS = new Set(['blade_detect']);
 const HW_PROFILE_BLADE_DETECT_CAPABILITY_KEYS = new Set(['has_blade_detect', 'hasbladedetect']);
+const TRUTHY_VALUES = new Set(['1', 'true', 'yes', 'on']);
+const FALSY_VALUES = new Set(['0', 'false', 'no', 'off']);
 
 const parsePositiveInteger = (value: string): number | null => {
   const normalized = value.trim();
@@ -32,10 +34,26 @@ const parsePositiveInteger = (value: string): number | null => {
   return Number.parseInt(normalized, 10);
 };
 
-const parseHardwareProfile = (lines: string[]): HardwareProfile => {
+const parseBoolean = (value: string): boolean | null => {
+  const normalized = value.trim().toLowerCase();
+  if (TRUTHY_VALUES.has(normalized)) {
+    return true;
+  }
+  if (FALSY_VALUES.has(normalized)) {
+    return false;
+  }
+  return null;
+};
+
+interface ParsedHardwareProfile extends HardwareProfile {
+  matchedProfileToken: boolean;
+}
+
+const parseHardwareProfile = (lines: string[]): ParsedHardwareProfile => {
   let numBlades: number | null = null;
   let numButtons: number | null = null;
   let hasBladeDetect: boolean | null = null;
+  let matchedProfileToken = false;
 
   lines.forEach((line) => {
     const normalizedLine = line
@@ -65,24 +83,31 @@ const parseHardwareProfile = (lines: string[]): HardwareProfile => {
         }
 
         if (HW_PROFILE_NUM_BLADE_KEYS.has(key)) {
+          matchedProfileToken = true;
           const parsed = parsePositiveInteger(value);
           if (parsed !== null) numBlades = parsed;
           return;
         }
 
         if (HW_PROFILE_NUM_BUTTON_KEYS.has(key)) {
+          matchedProfileToken = true;
           const parsed = parsePositiveInteger(value);
           if (parsed !== null) numButtons = parsed;
           return;
         }
 
         if (HW_PROFILE_BLADE_DETECT_STATE_KEYS.has(key)) {
+          matchedProfileToken = true;
           hasBladeDetect = true;
           return;
         }
 
         if (HW_PROFILE_BLADE_DETECT_CAPABILITY_KEYS.has(key)) {
-          hasBladeDetect = true;
+          matchedProfileToken = true;
+          const parsed = parseBoolean(value);
+          if (parsed !== null) {
+            hasBladeDetect = parsed;
+          }
           return;
         }
       });
@@ -92,6 +117,7 @@ const parseHardwareProfile = (lines: string[]): HardwareProfile => {
     numBlades: numBlades ?? 1,
     numButtons: numButtons ?? 1,
     hasBladeDetect: hasBladeDetect ?? undefined,
+    matchedProfileToken,
   };
 };
 
@@ -481,7 +507,15 @@ export class SerialManager {
 
   async getHardwareProfile(): Promise<HardwareProfile> {
     const lines = await this.collectCommandLines('GET_HW_PROFILE');
-    return parseHardwareProfile(lines);
+    const parsed = parseHardwareProfile(lines);
+    if (!parsed.matchedProfileToken) {
+      throw new Error('Incompatible firmware: GET_HW_PROFILE returned no profile keys');
+    }
+    return {
+      numBlades: parsed.numBlades,
+      numButtons: parsed.numButtons,
+      hasBladeDetect: parsed.hasBladeDetect,
+    };
   }
 
   async listFonts(): Promise<string[]> {
