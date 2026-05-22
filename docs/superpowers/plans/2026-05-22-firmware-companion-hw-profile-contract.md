@@ -365,7 +365,7 @@ Expected: PASS in both repositories.
 - Update session `plan.md` milestones for firmware change, companion change, and verification completion.
 ```
 
-- [ ] **Step 3: Commit tracking docs (if changed)**
+- [x] **Step 3: Commit tracking docs (if changed)**
 
 ```bash
 cd /Users/matthew.mcgeary/Copilot_workspace
