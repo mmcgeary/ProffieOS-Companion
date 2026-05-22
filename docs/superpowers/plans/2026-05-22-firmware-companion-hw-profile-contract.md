@@ -30,7 +30,7 @@
 - Modify: `/Users/matthew.mcgeary/Copilot_workspace/ProffieOS/props/saber_ini_config.h`
 - Test: `/Users/matthew.mcgeary/Copilot_workspace/ProffieOS/props/style_registry_tests.cpp`
 
-- [ ] **Step 1: Write failing firmware host tests for contract constants and profile line format**
+- [x] **Step 1: Write failing firmware host tests for contract constants and profile line format**
 
 ```cpp
 static void TestHardwareProfileCommandContract() {
@@ -50,7 +50,7 @@ static void TestIniLoadRetryPolicySupportsDisabledSentinel() {
 }
 ```
 
-- [ ] **Step 2: Run firmware host tests to verify RED**
+- [x] **Step 2: Run firmware host tests to verify RED**
 
 Run:
 
@@ -61,7 +61,7 @@ make test
 
 Expected: FAIL with undefined symbols for new contract helpers/constants/sentinel.
 
-- [ ] **Step 3: Implement minimal firmware helpers/constants to satisfy tests**
+- [x] **Step 3: Implement minimal firmware helpers/constants to satisfy tests**
 
 ```cpp
 inline constexpr const char kGetHardwareProfileCmd[] = "GET_HW_PROFILE";
@@ -100,7 +100,7 @@ inline bool ShouldAttemptIniLoad(bool force,
 }
 ```
 
-- [ ] **Step 4: Run firmware host tests to verify GREEN**
+- [x] **Step 4: Run firmware host tests to verify GREEN**
 
 Run:
 
@@ -111,7 +111,7 @@ make test
 
 Expected: PASS with new contract helper tests green.
 
-- [ ] **Step 5: Commit firmware helper/test changes**
+- [x] **Step 5: Commit firmware helper/test changes**
 
 ```bash
 cd /Users/matthew.mcgeary/Copilot_workspace/ProffieOS
@@ -128,7 +128,7 @@ git commit -m "feat(ini): define hw profile command contract helpers"
 - Modify: `/Users/matthew.mcgeary/Copilot_workspace/ProffieOS/props/saber_ini_config.h`
 - Test: `/Users/matthew.mcgeary/Copilot_workspace/ProffieOS/props/style_registry_tests.cpp`
 
-- [ ] **Step 1: Add failing test for explicit retry disable behavior after missing-file policy**
+- [x] **Step 1: Add failing test for explicit retry disable behavior after missing-file policy**
 
 ```cpp
 static void TestIniLoadRetryPolicyKeepsTimedRecoveryWhenNotDisabled() {
@@ -138,7 +138,7 @@ static void TestIniLoadRetryPolicyKeepsTimedRecoveryWhenNotDisabled() {
 }
 ```
 
-- [ ] **Step 2: Run firmware host tests to verify RED for policy expectations**
+- [x] **Step 2: Run firmware host tests to verify RED for policy expectations**
 
 Run:
 
@@ -149,7 +149,7 @@ make test
 
 Expected: FAIL if retry policy behavior changed incorrectly.
 
-- [ ] **Step 3: Implement command wiring and no-spam missing-INI behavior**
+- [x] **Step 3: Implement command wiring and no-spam missing-INI behavior**
 
 ```cpp
 if (!strcmp(cmd, kGetHardwareProfileCmd)) {
@@ -180,7 +180,7 @@ if (!LSFS::Exists(INI_CONFIG_FILE)) {
 }
 ```
 
-- [ ] **Step 4: Run firmware host tests to verify GREEN**
+- [x] **Step 4: Run firmware host tests to verify GREEN**
 
 Run:
 
@@ -191,7 +191,7 @@ make test
 
 Expected: PASS with contract/policy tests and existing prop tests.
 
-- [ ] **Step 5: Commit firmware command wiring**
+- [x] **Step 5: Commit firmware command wiring**
 
 ```bash
 cd /Users/matthew.mcgeary/Copilot_workspace/ProffieOS
@@ -208,7 +208,7 @@ git commit -m "fix(ini): add hw profile command and stop missing-ini spam loop"
 - Modify: `/Users/matthew.mcgeary/Copilot_workspace/ProffieOS-Companion/src/serial/serialManager.ts`
 - Test: `/Users/matthew.mcgeary/Copilot_workspace/ProffieOS-Companion/src/serial/serialManager.test.ts`
 
-- [ ] **Step 1: Write failing parser tests for contract line and incompatibility rejection**
+- [x] **Step 1: Write failing parser tests for contract line and incompatibility rejection**
 
 ```ts
 it('parses firmware HW_PROFILE contract line with blade_detect state token', async () => {
@@ -259,7 +259,7 @@ it('rejects hardware profile reads with no recognized profile keys', async () =>
 });
 ```
 
-- [ ] **Step 2: Run focused companion tests to verify RED**
+- [x] **Step 2: Run focused companion tests to verify RED**
 
 Run:
 
@@ -270,7 +270,7 @@ npm test -- src/serial/serialManager.test.ts
 
 Expected: FAIL on the new contract assertions.
 
-- [ ] **Step 3: Implement minimal parser contract alignment**
+- [x] **Step 3: Implement minimal parser contract alignment**
 
 ```ts
 const TRUTHY_VALUES = new Set(['1', 'true', 'yes', 'on']);
@@ -319,7 +319,7 @@ async getHardwareProfile(): Promise<HardwareProfile> {
 }
 ```
 
-- [ ] **Step 4: Run focused and related companion tests to verify GREEN**
+- [x] **Step 4: Run focused and related companion tests to verify GREEN**
 
 Run:
 
@@ -330,7 +330,7 @@ npm test -- src/serial/serialManager.test.ts src/state/configStore.test.ts src/c
 
 Expected: PASS, including parser and bank-selector regressions.
 
-- [ ] **Step 5: Commit companion parser/test changes**
+- [x] **Step 5: Commit companion parser/test changes**
 
 ```bash
 cd /Users/matthew.mcgeary/Copilot_workspace/ProffieOS-Companion
@@ -346,7 +346,7 @@ git commit -m "fix(serial): enforce hw profile protocol contract"
 - Modify: `/Users/matthew.mcgeary/Copilot_workspace/aidlc-docs/audit.md`
 - Modify: `/Users/matthew.mcgeary/.copilot/session-state/b2e0b935-ba11-4e2a-90fd-51619f8964d8/plan.md`
 
-- [ ] **Step 1: Run firmware and companion verification suites**
+- [x] **Step 1: Run firmware and companion verification suites**
 
 Run:
 
@@ -357,7 +357,7 @@ cd /Users/matthew.mcgeary/Copilot_workspace/ProffieOS-Companion && npm test -- s
 
 Expected: PASS in both repositories.
 
-- [ ] **Step 2: Update workflow/session tracking artifacts**
+- [x] **Step 2: Update workflow/session tracking artifacts**
 
 ```markdown
 - Mark this protocol-fix plan task checkboxes complete.
@@ -365,7 +365,7 @@ Expected: PASS in both repositories.
 - Update session `plan.md` milestones for firmware change, companion change, and verification completion.
 ```
 
-- [ ] **Step 3: Commit tracking docs (if changed)**
+- [x] **Step 3: Commit tracking docs (if changed)**
 
 ```bash
 cd /Users/matthew.mcgeary/Copilot_workspace

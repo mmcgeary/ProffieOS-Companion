@@ -292,6 +292,27 @@ describe('SerialManager', () => {
     expect((manager as unknown as SerialManagerInternals).onLineReceived).toBeNull();
   });
 
+  it('parses firmware HW_PROFILE contract lines emitted as a single response', async () => {
+    const manager = new SerialManager();
+    const writeMock = vi.fn().mockResolvedValue(undefined);
+    attachWriter(manager, writeMock);
+
+    const profilePromise = manager.getHardwareProfile();
+
+    emitLine(
+      manager,
+      'HW_PROFILE num_blades=1 num_buttons=1 has_blade_detect=1 blade_detect=0'
+    );
+    await vi.advanceTimersByTimeAsync(250);
+
+    await expect(profilePromise).resolves.toEqual({
+      numBlades: 1,
+      numButtons: 1,
+      hasBladeDetect: true,
+    });
+    expect((manager as unknown as SerialManagerInternals).onLineReceived).toBeNull();
+  });
+
   it('waits for a delayed first command response before collecting profile lines', async () => {
     const manager = new SerialManager();
     const writeMock = vi.fn().mockResolvedValue(undefined);
@@ -353,22 +374,21 @@ describe('SerialManager', () => {
     expect((manager as unknown as SerialManagerInternals).onLineReceived).toBeNull();
   });
 
-  it('treats blade-detect support as unknown when logs omit a blade-detect key', async () => {
+  it('rejects getHardwareProfile when no hardware profile keys are returned', async () => {
     const manager = new SerialManager();
     const writeMock = vi.fn().mockResolvedValue(undefined);
     attachWriter(manager, writeMock);
 
     const profilePromise = manager.getHardwareProfile();
+    const profileExpectation = expect(profilePromise).rejects.toThrow(
+      'Incompatible firmware: GET_HW_PROFILE returned no profile keys'
+    );
 
     emitLine(manager, 'SaberIni: Loading...');
     emitLine(manager, 'SaberIni: INI missing');
     await vi.advanceTimersByTimeAsync(250);
 
-    await expect(profilePromise).resolves.toEqual({
-      numBlades: 1,
-      numButtons: 1,
-      hasBladeDetect: undefined,
-    });
+    await profileExpectation;
     expect((manager as unknown as SerialManagerInternals).onLineReceived).toBeNull();
   });
 
@@ -392,7 +412,7 @@ describe('SerialManager', () => {
     expect((manager as unknown as SerialManagerInternals).onLineReceived).toBeNull();
   });
 
-  it('treats has_blade_detect=0 as blade-detect capability present', async () => {
+  it('treats has_blade_detect=0 as blade-detect capability false', async () => {
     const manager = new SerialManager();
     const writeMock = vi.fn().mockResolvedValue(undefined);
     attachWriter(manager, writeMock);
@@ -407,7 +427,7 @@ describe('SerialManager', () => {
     await expect(profilePromise).resolves.toEqual({
       numBlades: 1,
       numButtons: 1,
-      hasBladeDetect: true,
+      hasBladeDetect: false,
     });
     expect((manager as unknown as SerialManagerInternals).onLineReceived).toBeNull();
   });
