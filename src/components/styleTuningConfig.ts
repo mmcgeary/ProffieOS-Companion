@@ -111,3 +111,44 @@ export const getVisibleStyleTuningArgs = (
     return explicitValue !== undefined && explicitValue !== '';
   });
 };
+
+const OFF_STATE_BOUNDS = {
+  off_rate_ms: { min: 10, max: 60000 },
+} as const;
+
+export const OFF_MODE_OPTIONS = [
+  { value: 'pulse', label: 'Pulse' },
+  { value: 'random', label: 'Random' },
+] as const;
+
+export type OffStateKey = 'off_color' | 'off_mode' | 'off_rate_ms';
+
+const OFF_STATE_DEFAULTS: Record<OffStateKey, string> = {
+  off_color: 'Black',
+  off_mode: 'pulse',
+  off_rate_ms: '1200',
+};
+
+export const getOffStateDefault = (key: OffStateKey): string => OFF_STATE_DEFAULTS[key];
+
+export const getOffStateValue = (
+  params: Record<string, string> | undefined,
+  key: OffStateKey,
+): string => {
+  const value = params?.[key];
+  return value !== undefined && value !== '' ? value : getOffStateDefault(key);
+};
+
+export const getOffModeSelectorValue = (mode: string | undefined): string =>
+  (mode ?? '').trim().toLowerCase() === 'random' ? '2' : '1';
+
+export const getOffStateRateMsValue = (params: Record<string, string> | undefined): string => {
+  const raw = getOffStateValue(params, 'off_rate_ms');
+  const parsed = Number.parseInt(raw, 10);
+  if (Number.isNaN(parsed)) return OFF_STATE_DEFAULTS.off_rate_ms;
+  const clamped = Math.min(
+    OFF_STATE_BOUNDS.off_rate_ms.max,
+    Math.max(OFF_STATE_BOUNDS.off_rate_ms.min, parsed),
+  );
+  return String(clamped);
+};

@@ -4,6 +4,10 @@ import {
   getStyleTuningDefault,
   getStyleTuningValue,
   getVisibleStyleTuningArgs,
+  getOffModeSelectorValue,
+  getOffStateDefault,
+  getOffStateRateMsValue,
+  getOffStateValue,
 } from './styleTuningConfig';
 
 const EXPECTED_STYLE_TUNING_METADATA = [
@@ -78,5 +82,26 @@ describe('styleTuningConfig', () => {
   it('keeps explicitly-set tuning keys visible even when not style-default', () => {
     const visibleKeys = getVisibleStyleTuningArgs('rainbow', { strobe_ms: '12' }).map((arg) => arg.key);
     expect(visibleKeys).toContain('strobe_ms');
+  });
+});
+
+describe('off-state helpers', () => {
+  it('returns off-state defaults when values are missing', () => {
+    expect(getOffStateDefault('off_color')).toBe('Black');
+    expect(getOffStateDefault('off_mode')).toBe('pulse');
+    expect(getOffStateDefault('off_rate_ms')).toBe('1200');
+    expect(getOffStateValue({}, 'off_color')).toBe('Black');
+  });
+
+  it('maps off_mode to firmware selector values', () => {
+    expect(getOffModeSelectorValue('pulse')).toBe('1');
+    expect(getOffModeSelectorValue('random')).toBe('2');
+    expect(getOffModeSelectorValue('invalid')).toBe('1');
+  });
+
+  it('clamps off_rate_ms to firmware bounds', () => {
+    expect(getOffStateRateMsValue({ off_rate_ms: '5' })).toBe('10');
+    expect(getOffStateRateMsValue({ off_rate_ms: '1200' })).toBe('1200');
+    expect(getOffStateRateMsValue({ off_rate_ms: '999999' })).toBe('60000');
   });
 });
