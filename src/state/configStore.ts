@@ -376,7 +376,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
         hwProfile = {
           numBlades: Math.max(fallbackProfile.numBlades, boardProfile.numBlades),
           numButtons: Math.max(fallbackProfile.numButtons, boardProfile.numButtons),
-          hasBladeDetect: boardProfile.hasBladeDetect,
+          hasBladeDetect: boardProfile.hasBladeDetect ?? fallbackProfile.hasBladeDetect,
         };
       } catch (error: unknown) {
         console.warn('Unable to read hardware profile for sample config load:', error);

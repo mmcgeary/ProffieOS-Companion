@@ -353,6 +353,25 @@ describe('SerialManager', () => {
     expect((manager as unknown as SerialManagerInternals).onLineReceived).toBeNull();
   });
 
+  it('treats blade-detect support as unknown when logs omit a blade-detect key', async () => {
+    const manager = new SerialManager();
+    const writeMock = vi.fn().mockResolvedValue(undefined);
+    attachWriter(manager, writeMock);
+
+    const profilePromise = manager.getHardwareProfile();
+
+    emitLine(manager, 'SaberIni: Loading...');
+    emitLine(manager, 'SaberIni: INI missing');
+    await vi.advanceTimersByTimeAsync(250);
+
+    await expect(profilePromise).resolves.toEqual({
+      numBlades: 1,
+      numButtons: 1,
+      hasBladeDetect: undefined,
+    });
+    expect((manager as unknown as SerialManagerInternals).onLineReceived).toBeNull();
+  });
+
   it('rejects list command when initial write rejects after a delay', async () => {
     const manager = new SerialManager();
     const writeMock = vi.fn().mockImplementation(

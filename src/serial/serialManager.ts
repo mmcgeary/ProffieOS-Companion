@@ -89,14 +89,14 @@ const parseHardwareProfile = (lines: string[]): HardwareProfile => {
   return {
     numBlades: numBlades ?? 1,
     numButtons: numButtons ?? 1,
-    hasBladeDetect: hasBladeDetect ?? false,
+    hasBladeDetect: hasBladeDetect ?? undefined,
   };
 };
 
 export interface HardwareProfile {
   numBlades: number;
   numButtons: number;
-  hasBladeDetect: boolean;
+  hasBladeDetect?: boolean;
 }
 
 export class SerialManager {
