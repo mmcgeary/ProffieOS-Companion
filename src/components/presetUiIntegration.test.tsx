@@ -225,16 +225,29 @@ describe('preset UI integration', () => {
   it('renders off-state controls and updates selected blade off-state params', () => {
     render(<PresetEditor />);
 
+    const blade1Before = {
+     ...useConfigStore.getState().doc!.banks.blade_in.presets[0].blades[0].params,
+    };
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Blade 2' }));
+    const offColorInput = screen.getByLabelText('Off Color');
     const offModeSelect = screen.getByLabelText('Off Mode');
     const offRateInput = screen.getByLabelText('Off Rate (ms)');
+
+    expect(offColorInput).toBeTruthy();
     expect(offModeSelect).toBeTruthy();
     expect(offRateInput).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Blade 2' }));
+    fireEvent.change(offColorInput, { target: { value: 'Magenta' } });
     fireEvent.change(offModeSelect, { target: { value: 'random' } });
     fireEvent.change(offRateInput, { target: { value: '1800' } });
 
-    const blade2 = useConfigStore.getState().doc?.banks.blade_in.presets[0].blades[1];
+    const state = useConfigStore.getState().doc?.banks.blade_in.presets[0];
+    const blade1 = state?.blades[0];
+    const blade2 = state?.blades[1];
+
+    expect(blade1?.params).toEqual(blade1Before);
+    expect(blade2?.params.off_color).toBe('Magenta');
     expect(blade2?.params.off_mode).toBe('random');
     expect(blade2?.params.off_rate_ms).toBe('1800');
   });
