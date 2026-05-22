@@ -7,6 +7,8 @@ import { BladeCanvas } from './BladeCanvas';
 import { PresetList } from './PresetList';
 import { buildStyleString } from './styleStringBuilder';
 import {
+  OFF_MODE_OPTIONS,
+  getOffStateValue,
   getStyleTuningValue,
   getVisibleStyleTuningArgs,
   type StyleTuningKey,
@@ -464,6 +466,74 @@ export const PresetEditor: React.FC = () => {
                   />
                 </div>
               ))}
+
+              <div style={{ gridColumn: '1 / -1' }}>
+                <h4 style={{ margin: '8px 0', fontSize: '13px', textTransform: 'uppercase', color: 'var(--text)' }}>
+                  Off-State Behavior
+                </h4>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 500 }}>Off Color</label>
+                <input
+                  aria-label="Off Color"
+                  type="text"
+                  value={getOffStateValue(selectedBlade.params, 'off_color')}
+                  onChange={(event) => handleBladeFieldChange('off_color', event.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border)',
+                    background: 'var(--bg)',
+                    color: 'var(--text-h)',
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 500 }}>Off Mode</label>
+                <select
+                  aria-label="Off Mode"
+                  value={getOffStateValue(selectedBlade.params, 'off_mode')}
+                  onChange={(event) => handleBladeFieldChange('off_mode', event.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border)',
+                    background: 'var(--bg)',
+                    color: 'var(--text-h)',
+                  }}
+                >
+                  {OFF_MODE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 500 }}>Off Rate (ms)</label>
+                <input
+                  aria-label="Off Rate (ms)"
+                  type="number"
+                  min={10}
+                  max={60000}
+                  step={10}
+                  value={getOffStateValue(selectedBlade.params, 'off_rate_ms')}
+                  onChange={(event) => handleBladeFieldChange('off_rate_ms', event.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border)',
+                    background: 'var(--bg)',
+                    color: 'var(--text-h)',
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>

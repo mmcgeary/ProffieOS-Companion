@@ -221,4 +221,21 @@ describe('preset UI integration', () => {
     expect(screen.queryByText('Strobe Duration')).toBeNull();
     expect(screen.getByText('Flicker Speed')).toBeTruthy();
   });
+
+  it('renders off-state controls and updates selected blade off-state params', () => {
+    render(<PresetEditor />);
+
+    const offModeSelect = screen.getByLabelText('Off Mode');
+    const offRateInput = screen.getByLabelText('Off Rate (ms)');
+    expect(offModeSelect).toBeTruthy();
+    expect(offRateInput).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Blade 2' }));
+    fireEvent.change(offModeSelect, { target: { value: 'random' } });
+    fireEvent.change(offRateInput, { target: { value: '1800' } });
+
+    const blade2 = useConfigStore.getState().doc?.banks.blade_in.presets[0].blades[1];
+    expect(blade2?.params.off_mode).toBe('random');
+    expect(blade2?.params.off_rate_ms).toBe('1800');
+  });
 });
