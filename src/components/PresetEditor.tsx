@@ -1,6 +1,6 @@
 import React from 'react';
 import { Music, Palette, Sliders, Type } from 'lucide-react';
-import type { PresetConfig } from '../config/types';
+import type { ConfigBank, PresetConfig } from '../config/types';
 import { serialManager } from '../serial/serialManager';
 import { useConfigStore } from '../state/configStore';
 import { BladeCanvas } from './BladeCanvas';
@@ -106,6 +106,7 @@ export const PresetEditor: React.FC = () => {
     addPreset,
     reorderPreset,
     deletePreset,
+    setActiveBank,
     setActivePresetIndex,
     setActiveBladeIndex,
   } = useConfigStore();
@@ -131,6 +132,13 @@ export const PresetEditor: React.FC = () => {
   const bladeCount = Math.max(1, doc?.hardwareProfile.numBlades ?? activePreset?.blades.length ?? 1);
   const selectedBladeIndex = clamp(activeBladeIndex, 0, bladeCount - 1);
   const activeSectionIndex = presetSections[activePresetIndex]?.index ?? -1;
+  const showBankSelector = Boolean(doc?.hardwareProfile.hasBladeDetect);
+
+  const handleBankChange = (value: string) => {
+    if (value === 'blade_in' || value === 'blade_out') {
+      setActiveBank(value as ConfigBank);
+    }
+  };
 
   React.useEffect(() => {
     if (activeBladeIndex !== selectedBladeIndex) {
@@ -271,6 +279,41 @@ export const PresetEditor: React.FC = () => {
       />
 
       <section style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        {showBankSelector && (
+          <div
+            style={{
+              background: 'var(--bg)',
+              border: '1px solid var(--border)',
+              padding: '12px 16px',
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              width: 'fit-content',
+            }}
+          >
+            <label htmlFor="config-bank-select" style={{ fontSize: '13px', fontWeight: 600 }}>
+              Config Bank
+            </label>
+            <select
+              id="config-bank-select"
+              aria-label="Config Bank"
+              value={activeBank}
+              onChange={(event) => handleBankChange(event.target.value)}
+              style={{
+                padding: '8px 10px',
+                borderRadius: '8px',
+                border: '1px solid var(--border)',
+                background: 'var(--bg)',
+                color: 'var(--text-h)',
+              }}
+            >
+              <option value="blade_in">blade_in</option>
+              <option value="blade_out">blade_out</option>
+            </select>
+          </div>
+        )}
+
         <div
           style={{
             background: 'var(--code-bg)',

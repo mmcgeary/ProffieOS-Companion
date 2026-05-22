@@ -144,6 +144,37 @@ describe('preset UI integration', () => {
     expect(screen.queryByRole('button', { name: 'Tuning' })).toBeNull();
   });
 
+  it('shows Config Bank selector when blade-detect is enabled and switches active bank', () => {
+    render(<PresetEditor />);
+
+    const selector = screen.getByLabelText('Config Bank') as HTMLSelectElement;
+    expect(selector.value).toBe('blade_in');
+    expect(screen.getByRole('button', { name: 'Blue' })).toBeTruthy();
+
+    fireEvent.change(selector, { target: { value: 'blade_out' } });
+
+    const state = useConfigStore.getState();
+    expect(state.activeBank).toBe('blade_out');
+    expect(screen.getByRole('button', { name: 'OutPreset' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Blue' })).toBeNull();
+  });
+
+  it('hides Config Bank selector when blade-detect is disabled', () => {
+    const doc = makeDoc(2);
+    doc.hardwareProfile.hasBladeDetect = false;
+    useConfigStore.setState({
+      sections: parseIni(buildBladeInIni(doc)),
+      doc,
+      activeBank: 'blade_in',
+      activePresetIndex: 0,
+      activeBladeIndex: 0,
+    });
+
+    render(<PresetEditor />);
+
+    expect(screen.queryByLabelText('Config Bank')).toBeNull();
+  });
+
   it('deletes presets via UI and syncs store doc + sections', () => {
     const setActiveBankSpy = vi.spyOn(useConfigStore.getState(), 'setActiveBank');
     render(<PresetEditor />);
