@@ -190,7 +190,7 @@ describe('configStore save lifecycle', () => {
     expect(samplePresetSection?.params.blade2_style).toBe('standard');
   });
 
-  it('loadSample keeps dual-blade sample defaults when board profile falls back to single-blade values', async () => {
+  it('loadSample honors single-blade hardware profile when loading sample defaults', async () => {
     useConfigStore.setState({
       sections: [],
       doc: null,
@@ -215,9 +215,9 @@ describe('configStore save lifecycle', () => {
     };
     const samplePresetSection = state.sections.find((section) => section.name.toLowerCase() === 'preset1');
 
-    expect(state.doc.hardwareProfile.numBlades).toBe(2);
-    expect(state.doc.banks.blade_in.presets[0]?.blades).toHaveLength(2);
-    expect(samplePresetSection?.params.blade2_style).toBe('standard');
+    expect(state.doc.hardwareProfile.numBlades).toBe(1);
+    expect(state.doc.banks.blade_in.presets[0]?.blades).toHaveLength(1);
+    expect(samplePresetSection?.params.blade2_style).toBeUndefined();
   });
 
   it('reorders presets in active bank and syncs preset sections', () => {
@@ -499,6 +499,27 @@ describe('configStore save lifecycle', () => {
     expect(state.error?.toLowerCase()).toContain('loaded sample');
     expect(state.doc.banks.blade_in.presets.length).toBeGreaterThan(0);
     expect(samplePresetSection?.params.blade1_style).toBe('standard');
+  });
+
+  it('uses hardware blade count for sample fallback when both INI banks are missing', async () => {
+    serialManagerMock.getHardwareProfile.mockResolvedValue({
+      numBlades: 1,
+      numButtons: 2,
+      hasBladeDetect: true,
+    });
+    serialManagerMock.readIniBank.mockResolvedValue('');
+
+    await useConfigStore.getState().loadFromBoard();
+
+    const state = useConfigStore.getState() as ReturnType<typeof useConfigStore.getState> & {
+      doc: ConfigDocument;
+    };
+    const samplePresetSection = state.sections.find((section) => section.name.toLowerCase() === 'preset1');
+
+    expect(state.doc.hardwareProfile.numBlades).toBe(1);
+    expect(state.doc.banks.blade_in.presets[0]?.blades).toHaveLength(1);
+    expect(samplePresetSection?.params.blade1_style).toBe('standard');
+    expect(samplePresetSection?.params.blade2_style).toBeUndefined();
   });
 
   it('disconnects and marks board offline when loadFromBoard times out', async () => {

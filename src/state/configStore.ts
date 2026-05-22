@@ -387,6 +387,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       bladeInIni: SAMPLE_INI,
       bladeOutIni: SAMPLE_INI,
       hwProfile,
+      preferHardwareBladeCount: true,
     });
     set({
       sections: buildSectionsForBank(doc, 'blade_in'),
@@ -411,6 +412,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
           bladeInIni: SAMPLE_INI,
           bladeOutIni: SAMPLE_INI,
           hwProfile,
+          preferHardwareBladeCount: true,
         });
         const activeBank = get().activeBank;
         const maxPresetIndex = Math.max(0, getBankPresets(fallbackDoc, activeBank).length - 1);

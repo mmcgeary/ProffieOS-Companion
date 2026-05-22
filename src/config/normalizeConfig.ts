@@ -24,6 +24,7 @@ export interface NormalizeConfigInput {
     numButtons: number;
     hasBladeDetect?: boolean;
   };
+  preferHardwareBladeCount?: boolean;
 }
 
 function getParamValue(params: Record<string, string>, targetKey: string): string | undefined {
@@ -221,7 +222,12 @@ function buildBankIni(doc: ConfigDocument, bank: ConfigBank): string {
   return generateIni(sections);
 }
 
-export function normalizeConfig({ bladeInIni, bladeOutIni, hwProfile }: NormalizeConfigInput): ConfigDocument {
+export function normalizeConfig({
+  bladeInIni,
+  bladeOutIni,
+  hwProfile,
+  preferHardwareBladeCount = false,
+}: NormalizeConfigInput): ConfigDocument {
   assertPositiveInteger(hwProfile.numBlades, 'numBlades');
   assertPositiveInteger(hwProfile.numButtons, 'numButtons');
 
@@ -232,7 +238,9 @@ export function normalizeConfig({ bladeInIni, bladeOutIni, hwProfile }: Normaliz
     inferNumBladesFromSections(bladeOutSections),
   );
   const inferredNumButtons = inferNumButtonsFromSections(bladeInSections, bladeOutSections) ?? 1;
-  const effectiveNumBlades = Math.max(hwProfile.numBlades, inferredNumBlades);
+  const effectiveNumBlades = preferHardwareBladeCount
+    ? hwProfile.numBlades
+    : Math.max(hwProfile.numBlades, inferredNumBlades);
   const effectiveNumButtons = Math.max(hwProfile.numButtons, inferredNumButtons);
 
   const global = readSharedSection(bladeInSections, bladeOutSections, 'global');
