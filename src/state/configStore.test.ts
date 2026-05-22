@@ -615,6 +615,23 @@ describe('configStore save lifecycle', () => {
     expect(useConfigStore.getState().isDirty).toBe(false);
   });
 
+  it('keeps blade-detect bank selector capability after save readback when profile reports false', async () => {
+    serialManagerMock.getHardwareProfile.mockResolvedValue({
+      numBlades: 1,
+      numButtons: 2,
+      hasBladeDetect: false,
+    });
+
+    await useConfigStore.getState().saveToBoard();
+
+    const state = useConfigStore.getState() as ReturnType<typeof useConfigStore.getState> & {
+      doc: ConfigDocument;
+    };
+
+    expect(state.saveStatus).toBe('success');
+    expect(state.doc.hardwareProfile.hasBladeDetect).toBe(true);
+  });
+
   it('disconnects cleanly when save readback times out after reboot', async () => {
     serialManagerMock.getHardwareProfile.mockRejectedValue(new Error('Read timeout'));
 

@@ -376,7 +376,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
         hwProfile = {
           numBlades: Math.max(fallbackProfile.numBlades, boardProfile.numBlades),
           numButtons: Math.max(fallbackProfile.numButtons, boardProfile.numButtons),
-          hasBladeDetect: boardProfile.hasBladeDetect ?? fallbackProfile.hasBladeDetect,
+          hasBladeDetect: boardProfile.hasBladeDetect || fallbackProfile.hasBladeDetect,
         };
       } catch (error: unknown) {
         console.warn('Unable to read hardware profile for sample config load:', error);
@@ -403,7 +403,12 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   loadFromBoard: async () => {
     try {
       set({ isLoading: true, error: null });
-      const hwProfile = await serialManager.getHardwareProfile();
+      const boardProfile = await serialManager.getHardwareProfile();
+      const previousHasBladeDetect = get().doc?.hardwareProfile.hasBladeDetect ?? false;
+      const hwProfile = {
+        ...boardProfile,
+        hasBladeDetect: boardProfile.hasBladeDetect || previousHasBladeDetect,
+      };
       const bladeInIni = await serialManager.readIniBank('blade_in');
       const bladeOutIni = await serialManager.readIniBank('blade_out');
 
@@ -506,7 +511,11 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
         return;
       }
 
-      const hwProfile = await serialManager.getHardwareProfile();
+      const boardProfile = await serialManager.getHardwareProfile();
+      const hwProfile = {
+        ...boardProfile,
+        hasBladeDetect: boardProfile.hasBladeDetect || doc.hardwareProfile.hasBladeDetect,
+      };
       const syncedBladeIn = await serialManager.readIniBank('blade_in');
       const syncedBladeOut = await serialManager.readIniBank('blade_out');
 
