@@ -477,6 +477,30 @@ describe('configStore save lifecycle', () => {
     expect(presetSection?.params.blade2_style).toBe('pulse');
   });
 
+  it('keeps board connected and loads sample config when both INI banks are missing', async () => {
+    serialManagerMock.getHardwareProfile.mockResolvedValue({
+      numBlades: 2,
+      numButtons: 2,
+      hasBladeDetect: true,
+    });
+    serialManagerMock.readIniBank.mockResolvedValue('');
+
+    await useConfigStore.getState().loadFromBoard();
+
+    const state = useConfigStore.getState() as ReturnType<typeof useConfigStore.getState> & {
+      doc: ConfigDocument;
+    };
+    const samplePresetSection = state.sections.find((section) => section.name.toLowerCase() === 'preset1');
+
+    expect(serialManagerMock.readIniBank).toHaveBeenNthCalledWith(1, 'blade_in');
+    expect(serialManagerMock.readIniBank).toHaveBeenNthCalledWith(2, 'blade_out');
+    expect(serialManagerMock.disconnect).not.toHaveBeenCalled();
+    expect(state.isConnected).toBe(true);
+    expect(state.error?.toLowerCase()).toContain('loaded sample');
+    expect(state.doc.banks.blade_in.presets.length).toBeGreaterThan(0);
+    expect(samplePresetSection?.params.blade1_style).toBe('standard');
+  });
+
   it('disconnects and marks board offline when loadFromBoard times out', async () => {
     serialManagerMock.getHardwareProfile.mockRejectedValue(new Error('Read timeout'));
 

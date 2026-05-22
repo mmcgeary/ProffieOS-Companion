@@ -407,7 +407,25 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       const bladeOutIni = await serialManager.readIniBank('blade_out');
 
       if (!bladeInIni && !bladeOutIni) {
-        throw new Error('No data received from board');
+        const fallbackDoc = normalizeConfig({
+          bladeInIni: SAMPLE_INI,
+          bladeOutIni: SAMPLE_INI,
+          hwProfile,
+        });
+        const activeBank = get().activeBank;
+        const maxPresetIndex = Math.max(0, getBankPresets(fallbackDoc, activeBank).length - 1);
+        const maxBladeIndex = Math.max(0, fallbackDoc.hardwareProfile.numBlades - 1);
+
+        set({
+          sections: buildSectionsForBank(fallbackDoc, activeBank),
+          doc: fallbackDoc,
+          isDirty: false,
+          isLoading: false,
+          error: 'No INI files found on SD. Loaded sample config; save to initialize board storage.',
+          activePresetIndex: clampIndex(get().activePresetIndex, maxPresetIndex),
+          activeBladeIndex: clampIndex(get().activeBladeIndex, maxBladeIndex),
+        });
+        return;
       }
 
       const doc = normalizeConfig({
