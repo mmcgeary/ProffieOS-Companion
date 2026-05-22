@@ -21,11 +21,8 @@ const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve,
 
 const HW_PROFILE_NUM_BLADE_KEYS = new Set(['num_blades', 'numblades']);
 const HW_PROFILE_NUM_BUTTON_KEYS = new Set(['num_buttons', 'numbuttons']);
-const HW_PROFILE_BLADE_DETECT_KEYS = new Set([
-  'blade_detect',
-  'has_blade_detect',
-  'hasbladedetect',
-]);
+const HW_PROFILE_BLADE_DETECT_STATE_KEYS = new Set(['blade_detect']);
+const HW_PROFILE_BLADE_DETECT_CAPABILITY_KEYS = new Set(['has_blade_detect', 'hasbladedetect']);
 const TRUTHY_VALUES = new Set(['1', 'true', 'yes', 'on']);
 
 const parsePositiveInteger = (value: string): number | null => {
@@ -80,8 +77,14 @@ const parseHardwareProfile = (lines: string[]): HardwareProfile => {
           return;
         }
 
-        if (HW_PROFILE_BLADE_DETECT_KEYS.has(key)) {
+        if (HW_PROFILE_BLADE_DETECT_STATE_KEYS.has(key)) {
+          hasBladeDetect = true;
+          return;
+        }
+
+        if (HW_PROFILE_BLADE_DETECT_CAPABILITY_KEYS.has(key)) {
           hasBladeDetect = TRUTHY_VALUES.has(value.toLowerCase());
+          return;
         }
       });
   });
