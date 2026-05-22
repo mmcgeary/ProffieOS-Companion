@@ -175,6 +175,23 @@ describe('preset UI integration', () => {
     expect(screen.queryByLabelText('Config Bank')).toBeNull();
   });
 
+  it('edits only the selected bank after switching Config Bank', () => {
+    render(<PresetEditor />);
+
+    const selector = screen.getByLabelText('Config Bank');
+    fireEvent.change(selector, { target: { value: 'blade_out' } });
+
+    const nameInput = screen.getByDisplayValue('OutPreset') as HTMLInputElement;
+    expect(nameInput.value).toBe('OutPreset');
+    fireEvent.change(nameInput, { target: { value: 'Out Edited' } });
+
+    fireEvent.change(selector, { target: { value: 'blade_in' } });
+
+    const state = useConfigStore.getState();
+    expect(state.doc?.banks.blade_out.presets[0]?.name).toBe('Out Edited');
+    expect(state.doc?.banks.blade_in.presets[0]?.name).toBe('Blue');
+  });
+
   it('deletes presets via UI and syncs store doc + sections', () => {
     const setActiveBankSpy = vi.spyOn(useConfigStore.getState(), 'setActiveBank');
     render(<PresetEditor />);
