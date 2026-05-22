@@ -35,7 +35,7 @@
 - Modify: `/Users/matthew.mcgeary/Copilot_workspace/ProffieOS-Companion/.worktrees/n-blade-platform/src/components/styleTuningConfig.ts`
 - Test: `/Users/matthew.mcgeary/Copilot_workspace/ProffieOS-Companion/.worktrees/n-blade-platform/src/components/styleTuningConfig.test.ts`
 
-- [ ] **Step 1: Write failing helper tests for off-state defaults and mode mapping**
+- [x] **Step 1: Write failing helper tests for off-state defaults and mode mapping**
 
 ```ts
 // styleTuningConfig.test.ts
@@ -66,7 +66,7 @@ it('clamps off_rate_ms to firmware bounds', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run:
 
@@ -77,7 +77,7 @@ npm test -- src/components/styleTuningConfig.test.ts
 
 Expected: FAIL with missing exports (`getOffStateDefault`, `getOffModeSelectorValue`, etc.).
 
-- [ ] **Step 3: Implement off-state metadata + helpers in styleTuningConfig**
+- [x] **Step 3: Implement off-state metadata + helpers in styleTuningConfig**
 
 ```ts
 // styleTuningConfig.ts
@@ -120,7 +120,7 @@ export const getOffStateRateMsValue = (params: Record<string, string> | undefine
 };
 ```
 
-- [ ] **Step 4: Run tests to verify pass**
+- [x] **Step 4: Run tests to verify pass**
 
 Run:
 
@@ -131,7 +131,7 @@ npm test -- src/components/styleTuningConfig.test.ts
 
 Expected: PASS for the new off-state helper coverage.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd /Users/matthew.mcgeary/Copilot_workspace/ProffieOS-Companion/.worktrees/n-blade-platform
@@ -148,7 +148,7 @@ git commit -m "feat(ui): add off-state metadata helpers"
 - Test: `/Users/matthew.mcgeary/Copilot_workspace/ProffieOS-Companion/.worktrees/n-blade-platform/src/components/styleStringBuilder.test.ts`
 - Modify: `/Users/matthew.mcgeary/Copilot_workspace/ProffieOS-Companion/.worktrees/n-blade-platform/src/components/PresetEditor.tsx`
 
-- [ ] **Step 1: Write failing builder tests for off-state arg positions (14/15/16)**
+- [x] **Step 1: Write failing builder tests for off-state arg positions (14/15/16)**
 
 ```ts
 // styleStringBuilder.test.ts
@@ -186,7 +186,7 @@ describe('styleStringBuilder', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run:
 
@@ -197,7 +197,7 @@ npm test -- src/components/styleStringBuilder.test.ts
 
 Expected: FAIL because `styleStringBuilder.ts` does not exist.
 
-- [ ] **Step 3: Implement shared style-string builder**
+- [x] **Step 3: Implement shared style-string builder**
 
 ```ts
 // styleStringBuilder.ts
@@ -266,7 +266,7 @@ export const buildStyleString = (blade: PresetConfig['blades'][number]): string 
 };
 ```
 
-- [ ] **Step 4: Use shared builder in PresetEditor**
+- [x] **Step 4: Use shared builder in PresetEditor**
 
 ```ts
 // PresetEditor.tsx (imports)
@@ -279,7 +279,7 @@ import { buildStyleString } from './styleStringBuilder';
 const styleString = buildStyleString(selectedBlade);
 ```
 
-- [ ] **Step 5: Run tests to verify pass**
+- [x] **Step 5: Run tests to verify pass**
 
 Run:
 
@@ -290,7 +290,7 @@ npm test -- src/components/styleStringBuilder.test.ts src/components/styleTuning
 
 Expected: PASS with off-state preview arg mapping covered.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 cd /Users/matthew.mcgeary/Copilot_workspace/ProffieOS-Companion/.worktrees/n-blade-platform
@@ -306,7 +306,7 @@ git commit -m "feat(ui): wire off-state args into preview style builder"
 - Modify: `/Users/matthew.mcgeary/Copilot_workspace/ProffieOS-Companion/.worktrees/n-blade-platform/src/components/PresetEditor.tsx`
 - Test: `/Users/matthew.mcgeary/Copilot_workspace/ProffieOS-Companion/.worktrees/n-blade-platform/src/components/presetUiIntegration.test.tsx`
 
-- [ ] **Step 1: Write failing integration test for off-state controls + per-blade updates**
+- [x] **Step 1: Write failing integration test for off-state controls + per-blade updates**
 
 ```tsx
 // presetUiIntegration.test.tsx
@@ -328,7 +328,7 @@ it('renders off-state controls and updates selected blade off-state params', () 
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run:
 
@@ -339,7 +339,7 @@ npm test -- src/components/presetUiIntegration.test.tsx
 
 Expected: FAIL because off-state controls are not rendered/labeled yet.
 
-- [ ] **Step 3: Implement off-state controls in PresetEditor**
+- [x] **Step 3: Implement off-state controls in PresetEditor**
 
 ```tsx
 // PresetEditor.tsx (imports)
@@ -402,7 +402,7 @@ import {
 </div>
 ```
 
-- [ ] **Step 4: Run integration + full companion gates**
+- [x] **Step 4: Run integration + full companion gates**
 
 Run:
 
@@ -416,7 +416,7 @@ npm run build
 
 Expected: all commands succeed.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd /Users/matthew.mcgeary/Copilot_workspace/ProffieOS-Companion/.worktrees/n-blade-platform
