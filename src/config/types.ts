@@ -4,6 +4,7 @@ export type UILevel = 'basic' | 'advanced';
 export interface BladeStyleConfig {
   style: string;
   params: Record<string, string>;
+  styleParams?: Record<string, string>;
 }
 
 export interface PresetConfig {
