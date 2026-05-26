@@ -65,8 +65,8 @@ describe('styleStringBuilder', () => {
       },
     });
     const tokens = style.split(' ');
-    // stab_color should NOT collide with ignition_time
-    expect(tokens[12]).toBe('500'); // ignition_time at arg12
+    expect(tokens[10]).toBe('65535,0,0'); // stab_color at arg10
+    expect(tokens[12]).toBe('500'); // ignition_time stays at arg12
     // Verify other non-colliding canonical positions
     expect(tokens[13]).not.toBe('500'); // retraction_time separate
     expect(tokens[14]).toBe('0,0,0'); // off_color default

@@ -120,18 +120,24 @@ export const buildStyleString = (blade: PresetConfig['blades'][number]): string 
     }
   }
 
+  const setArgIfUnset = (index: number, value: string): void => {
+    if (args[index] === '~') {
+      args[index] = value;
+    }
+  };
+
   // Core color params at canonical positions (ensures defaults)
-  args[1] = resolveColor(mergedParams.base_color || 'Blue');
-  args[2] = resolveColor(mergedParams.alt_color || 'Cyan');
-  args[5] = resolveColor(mergedParams.blast_color || 'White');
-  args[6] = resolveColor(mergedParams.clash_color || 'White');
-  args[7] = resolveColor(mergedParams.lockup_color || 'White');
+  setArgIfUnset(1, resolveColor(mergedParams.base_color || 'Blue'));
+  setArgIfUnset(2, resolveColor(mergedParams.alt_color || 'Cyan'));
+  setArgIfUnset(5, resolveColor(mergedParams.blast_color || 'White'));
+  setArgIfUnset(6, resolveColor(mergedParams.clash_color || 'White'));
+  setArgIfUnset(7, resolveColor(mergedParams.lockup_color || 'White'));
 
   // Timing and off-state at their canonical positions
-  args[12] = getStyleTuningValue(mergedParams, 'ignition_time');
-  args[13] = getStyleTuningValue(mergedParams, 'retraction_time');
-  args[14] = resolveColor(getOffStateValue(mergedParams, 'off_color'));
-  args[15] = getOffModeSelectorValue(getOffStateValue(mergedParams, 'off_mode'));
+  setArgIfUnset(12, getStyleTuningValue(mergedParams, 'ignition_time'));
+  setArgIfUnset(13, getStyleTuningValue(mergedParams, 'retraction_time'));
+  setArgIfUnset(14, resolveColor(getOffStateValue(mergedParams, 'off_color')));
+  setArgIfUnset(15, getOffModeSelectorValue(getOffStateValue(mergedParams, 'off_mode')));
   args[16] = getOffStateRateMsValue(mergedParams);
 
   // Tuning keys at their canonical positions
