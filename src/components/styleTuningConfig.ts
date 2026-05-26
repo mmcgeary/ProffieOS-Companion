@@ -1,3 +1,7 @@
+import { generatedStyleSchema } from '../config/generatedStyleSchema';
+import { SUPPORTED_SCHEMA_ARG_SYMBOLS } from '../config/styleArgSymbols';
+import type { UILevel } from '../config/types';
+
 export type StyleTuningArg = {
   key: string;
   label: string;
@@ -7,6 +11,26 @@ export type StyleTuningArg = {
   defaultValue: number;
   styles: readonly string[];
 };
+
+/** Param descriptor derived from the generated schema. */
+export interface SchemaControl {
+  key: string;
+  argSymbol: string;
+  label: string;
+  uiLevel: UILevel;
+}
+
+/** Keys considered "basic" — primary colors and core options. */
+const BASIC_PARAM_KEYS = new Set([
+  'base_color',
+  'alt_color',
+  'blast_color',
+  'clash_color',
+  'lockup_color',
+  'style_option',
+  'ignition_option',
+  'retraction_option',
+]);
 
 export const STYLE_TUNING_ARGS = [
   { key: 'ignition_time', label: 'Ignition Time', min: 50, max: 2000, step: 50, defaultValue: 300, styles: ['all'] },
@@ -152,3 +176,74 @@ export const getOffStateRateMsValue = (params: Record<string, string> | undefine
   );
   return String(clamped);
 };
+
+// --- Schema-driven control helpers ---
+
+const formatLabel = (key: string): string =>
+  key
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+
+const toSchemaControl = (param: { key: string; arg_symbol: string }): SchemaControl => ({
+  key: param.key,
+  argSymbol: param.arg_symbol,
+  label: formatLabel(param.key),
+  uiLevel: BASIC_PARAM_KEYS.has(param.key) ? 'basic' : 'advanced',
+});
+
+/**
+ * Returns all schema-derived controls for a given style name.
+ * Merges shared-core params with style-specific and secondary params
+ * (when the style opts in via include_secondary).
+ */
+export const getSchemaControlsForStyle = (styleName: string): SchemaControl[] => {
+  const normalized = styleName.trim().toLowerCase();
+  const styleDef = generatedStyleSchema.styles.find(
+    (s) => s.name.toLowerCase() === normalized,
+  );
+  if (!styleDef) return [];
+
+  const seen = new Set<string>();
+  const controls: SchemaControl[] = [];
+
+  const addParams = (params: ReadonlyArray<{ key: string; arg_symbol: string }>) => {
+    for (const param of params) {
+      if (!SUPPORTED_SCHEMA_ARG_SYMBOLS.has(param.arg_symbol)) {
+        continue;
+      }
+      if (!seen.has(param.key)) {
+        seen.add(param.key);
+        controls.push(toSchemaControl(param));
+      }
+    }
+  };
+
+  // Shared core params for the style's core type
+  const coreKey = styleDef.core as keyof typeof generatedStyleSchema.sharedCore;
+  const sharedCore = generatedStyleSchema.sharedCore[coreKey];
+  if (sharedCore) {
+    addParams(sharedCore.params);
+  }
+
+  // Style-specific params declared on the style definition.
+  addParams(styleDef.params);
+
+  // Secondary shared params when the style opts in
+  if ('include_secondary' in styleDef && styleDef.include_secondary) {
+    const secondary = generatedStyleSchema.sharedCore.secondary;
+    if (secondary) {
+      addParams(secondary.params);
+    }
+  }
+
+  return controls;
+};
+
+/** Returns only basic-level controls for a style. */
+export const getBasicSchemaControls = (styleName: string): SchemaControl[] =>
+  getSchemaControlsForStyle(styleName).filter((c) => c.uiLevel === 'basic');
+
+/** Returns only advanced-level controls for a style. */
+export const getAdvancedSchemaControls = (styleName: string): SchemaControl[] =>
+  getSchemaControlsForStyle(styleName).filter((c) => c.uiLevel === 'advanced');

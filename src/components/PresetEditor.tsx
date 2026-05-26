@@ -9,6 +9,7 @@ import { buildStyleString } from './styleStringBuilder';
 import {
   OFF_MODE_OPTIONS,
   getOffStateValue,
+  getSchemaControlsForStyle,
   getStyleTuningValue,
   getVisibleStyleTuningArgs,
   type StyleTuningKey,
@@ -39,6 +40,15 @@ const COLOR_FIELDS: Array<{ key: string; label: string }> = [
   { key: 'clash_color', label: 'Clash Color' },
   { key: 'lockup_color', label: 'Lockup Color' },
 ];
+
+const SCHEMA_CONTROL_INPUT_STYLE: React.CSSProperties = {
+  width: '100%',
+  padding: '10px',
+  borderRadius: '6px',
+  border: '1px solid var(--border)',
+  background: 'var(--bg)',
+  color: 'var(--text-h)',
+};
 
 const clamp = (value: number, min: number, max: number): number => {
   if (value < min) return min;
@@ -243,7 +253,7 @@ export const PresetEditor: React.FC = () => {
 
   const selectedBlade =
     activePreset.blades[selectedBladeIndex] ||
-    activePreset.blades[0] || { style: 'standard', params: {} };
+    activePreset.blades[0] || { style: 'standard', params: {}, styleParams: {} };
 
   const handlePresetFieldChange = (key: 'name' | 'font' | 'track', value: string) => {
     if (activeSectionIndex < 0) return;
@@ -254,8 +264,22 @@ export const PresetEditor: React.FC = () => {
     updateBladeParam(activePresetIndex, selectedBladeIndex, key, value);
   };
 
+  const getSchemaControlValue = (key: string): string =>
+    selectedBlade.styleParams?.[key] ?? selectedBlade.params[key] ?? '';
+
+  const handleSchemaControlChange = (key: string, value: string): void => {
+    handleBladeFieldChange(`param.${key}`, value);
+  };
+
   const styleString = buildStyleString(selectedBlade);
   const visibleStyleTuningArgs = getVisibleStyleTuningArgs(selectedBlade.style, selectedBlade.params);
+  const schemaControls = getSchemaControlsForStyle(selectedBlade.style);
+  const controlGroups: Record<'basic' | 'advanced', typeof schemaControls> = { basic: [], advanced: [] };
+  for (const control of schemaControls) {
+    controlGroups[control.uiLevel].push(control);
+  }
+  const basicControls = controlGroups.basic;
+  const advancedControls = controlGroups.advanced;
 
   return (
     <div
@@ -509,6 +533,52 @@ export const PresetEditor: React.FC = () => {
                   />
                 </div>
               ))}
+
+              {basicControls.length > 0 && (
+                <div data-testid="basic-style-controls" style={{ gridColumn: '1 / -1' }}>
+                  <h4 style={{ margin: '8px 0', fontSize: '13px', textTransform: 'uppercase', color: 'var(--text)' }}>
+                    Basic Style Controls
+                  </h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    {basicControls.map((ctrl) => (
+                      <div key={ctrl.key}>
+                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 500 }}>
+                          {ctrl.label}
+                        </label>
+                        <input
+                          type="text"
+                          value={getSchemaControlValue(ctrl.key)}
+                          onChange={(event) => handleSchemaControlChange(ctrl.key, event.target.value)}
+                          style={SCHEMA_CONTROL_INPUT_STYLE}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {advancedControls.length > 0 && (
+                <details data-testid="advanced-style-controls" style={{ gridColumn: '1 / -1' }}>
+                  <summary style={{ margin: '8px 0', fontSize: '13px', textTransform: 'uppercase', color: 'var(--text)', cursor: 'pointer', fontWeight: 600 }}>
+                    Advanced Style Controls
+                  </summary>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>
+                    {advancedControls.map((ctrl) => (
+                      <div key={ctrl.key}>
+                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 500 }}>
+                          {ctrl.label}
+                        </label>
+                        <input
+                          type="text"
+                          value={getSchemaControlValue(ctrl.key)}
+                          onChange={(event) => handleSchemaControlChange(ctrl.key, event.target.value)}
+                          style={SCHEMA_CONTROL_INPUT_STYLE}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              )}
 
               <div style={{ gridColumn: '1 / -1' }}>
                 <h4 style={{ margin: '8px 0', fontSize: '13px', textTransform: 'uppercase', color: 'var(--text)' }}>

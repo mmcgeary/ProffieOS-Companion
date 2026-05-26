@@ -46,6 +46,50 @@ The WebAssembly engine is located in `src/engine`. If you modify the C++ bridge:
 2. Run `make` in `src/engine/`.
 3. Copy the resulting `style_engine.js` and `style_engine.wasm` to `public/engine/`.
 
+## Style System and Schema
+
+The Companion app uses a **schema-driven** approach to blade style editing.
+A generated style schema (`src/config/generatedStyleSchema.ts`) defines:
+
+- **Shared core parameters** — keys common to all styles (colors, ignition/retraction
+  timing, effect sizes, animation variants). Some of these are hardcoded in the
+  firmware parser as `bladeN_<key>`; the rest must use `bladeN_param.<name>`.
+  See `props/saber_styles_reference.md` in the firmware repo for which is which.
+- **Style-specific parameters** — additional knobs exposed by individual styles,
+  written as `bladeN_param.<name>` in the INI file.
+
+### How It Works
+
+1. The schema is generated from the firmware style templates by
+   `props/tools/generate_style_schema.py` (in the **firmware** repo).
+2. The Companion reads the schema at build time and renders editor controls
+   for each parameter automatically.
+3. When you change a value in the UI, the Companion writes the correct
+   `bladeN_<key>` (for hardcoded keys) or `bladeN_param.<name>` (for
+   schema params) key to the INI section.
+4. The firmware INI loader reads the same keys and feeds them into the C++
+   style template engine.
+
+### INI Key Format
+
+```ini
+[preset1]
+font = bank/font1
+blade1_style = standard
+blade1_base_color = dodgerblue
+blade1_ignition_time = 300
+blade1_param.style_option = 2
+```
+
+- `blade1_style` — selects the style template.
+- `blade1_<key>` — sets a hardcoded core parameter (e.g. `base_color`,
+  `ignition_time`). Only keys recognised by the firmware parser work here.
+- `blade1_param.<name>` — sets a schema-defined named parameter. Required for
+  keys not hardcoded in the parser (e.g. `style_option`, `preon_size`).
+
+See `props/saber_styles_reference.md` in the firmware repo for the full
+parameter reference.
+
 ## License
 
 This project is licensed under the same terms as ProffieOS.

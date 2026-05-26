@@ -1,3 +1,5 @@
+import { generatedStyleSchema } from '../config/generatedStyleSchema';
+import { ARG_INDEX_BY_SYMBOL } from '../config/styleArgSymbols';
 import type { PresetConfig } from '../config/types';
 import {
   getOffModeSelectorValue,
@@ -38,25 +40,88 @@ const ARG_INDEX_BY_TUNING_KEY: Partial<Record<StyleTuningKey, number>> = {
   rainbow_speed: 30,
 };
 
+const COLOR_ARG_SYMBOLS = new Set([
+  'BASE_COLOR_ARG', 'ALT_COLOR_ARG', 'BLAST_COLOR_ARG', 'CLASH_COLOR_ARG',
+  'LOCKUP_COLOR_ARG', 'DRAG_COLOR_ARG', 'LB_COLOR_ARG', 'STAB_COLOR_ARG',
+  'SWING_COLOR_ARG', 'EMITTER_COLOR_ARG', 'PREON_COLOR_ARG',
+  'IGNITION_COLOR_ARG', 'RETRACTION_COLOR_ARG', 'POSTOFF_COLOR_ARG',
+  'OFF_COLOR_ARG', 'ALT_COLOR2_ARG', 'ALT_COLOR3_ARG',
+]);
+
+const isColorSymbol = (argSymbol: string): boolean => COLOR_ARG_SYMBOLS.has(argSymbol);
+
 const resolveColor = (value: string): string => COLORS[value] || value;
 
 export const buildStyleString = (blade: PresetConfig['blades'][number]): string => {
   const args = new Array(31).fill('~');
   args[0] = `ini_${blade.style || 'standard'}`;
-  args[1] = resolveColor(blade.params.base_color || 'Blue');
-  args[2] = resolveColor(blade.params.alt_color || 'Cyan');
-  args[5] = resolveColor(blade.params.blast_color || 'White');
-  args[6] = resolveColor(blade.params.clash_color || 'White');
-  args[7] = resolveColor(blade.params.lockup_color || 'White');
-  args[12] = getStyleTuningValue(blade.params, 'ignition_time');
-  args[13] = getStyleTuningValue(blade.params, 'retraction_time');
-  args[14] = resolveColor(getOffStateValue(blade.params, 'off_color'));
-  args[15] = getOffModeSelectorValue(getOffStateValue(blade.params, 'off_mode'));
-  args[16] = getOffStateRateMsValue(blade.params);
 
+  // Merge core params with styleParams (styleParams override)
+  const mergedParams: Record<string, string> = {
+    ...blade.params,
+    ...(blade.styleParams ?? {}),
+  };
+
+  // Schema-driven placement for params with known arg positions
+  const normalized = (blade.style || 'standard').trim().toLowerCase();
+  const styleDef = generatedStyleSchema.styles.find(
+    (s) => s.name.toLowerCase() === normalized,
+  );
+
+  // Place schema-driven args
+  if (styleDef) {
+    const allSchemaParams: Array<{ key: string; arg_symbol: string }> = [];
+    const coreKey = styleDef.core as keyof typeof generatedStyleSchema.sharedCore;
+    const sharedCore = generatedStyleSchema.sharedCore[coreKey];
+    if (sharedCore) allSchemaParams.push(...sharedCore.params);
+    allSchemaParams.push(...styleDef.params);
+    if ('include_secondary' in styleDef && styleDef.include_secondary) {
+      const secondary = generatedStyleSchema.sharedCore.secondary;
+      if (secondary) allSchemaParams.push(...secondary.params);
+    }
+
+    for (const param of allSchemaParams) {
+      const argIndex = ARG_INDEX_BY_SYMBOL[param.arg_symbol];
+      if (argIndex === undefined) continue;
+
+      const value = mergedParams[param.key];
+      if (value === undefined || value === '') continue;
+
+      // Extend array if needed
+      while (args.length <= argIndex) args.push('~');
+
+      if (isColorSymbol(param.arg_symbol)) {
+        args[argIndex] = resolveColor(value);
+      } else {
+        args[argIndex] = value;
+      }
+    }
+  }
+
+  const setArgIfUnset = (index: number, value: string): void => {
+    if (args[index] === '~') {
+      args[index] = value;
+    }
+  };
+
+  // Core color params at canonical positions (ensures defaults)
+  setArgIfUnset(1, resolveColor(mergedParams.base_color || 'Blue'));
+  setArgIfUnset(2, resolveColor(mergedParams.alt_color || 'Cyan'));
+  setArgIfUnset(5, resolveColor(mergedParams.blast_color || 'White'));
+  setArgIfUnset(6, resolveColor(mergedParams.clash_color || 'White'));
+  setArgIfUnset(7, resolveColor(mergedParams.lockup_color || 'White'));
+
+  // Timing and off-state at their canonical positions
+  setArgIfUnset(12, getStyleTuningValue(mergedParams, 'ignition_time'));
+  setArgIfUnset(13, getStyleTuningValue(mergedParams, 'retraction_time'));
+  setArgIfUnset(14, resolveColor(getOffStateValue(mergedParams, 'off_color')));
+  setArgIfUnset(15, getOffModeSelectorValue(getOffStateValue(mergedParams, 'off_mode')));
+  setArgIfUnset(16, getOffStateRateMsValue(mergedParams));
+
+  // Tuning keys at their canonical positions
   Object.entries(ARG_INDEX_BY_TUNING_KEY).forEach(([key, index]) => {
     if (index === undefined) return;
-    args[index] = getStyleTuningValue(blade.params, key as StyleTuningKey);
+    setArgIfUnset(index, getStyleTuningValue(mergedParams, key as StyleTuningKey));
   });
 
   return args.join(' ');

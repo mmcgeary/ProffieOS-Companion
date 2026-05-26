@@ -174,4 +174,40 @@ describe('normalizeConfig', () => {
     expect(doc.banks.blade_in.presets[0]?.blades[1]?.style).toBe('pulse');
     expect(doc.banks.blade_in.presets[0]?.blades[1]?.params.base_color).toBe('red');
   });
+
+  it('preserves blade1_param.* keys through parse and serialize round-trip', () => {
+    const iniWithStyleParams = `[global]
+num_buttons=1
+
+[preset1]
+name=ParamTest
+font=TestFont
+track=tracks/test.wav
+blade1_style=standard
+blade1_base_color=Blue
+blade1_param.flicker_depth=15000
+blade1_param.custom_mix=8000
+`;
+
+    const doc = normalizeConfig({
+      bladeInIni: iniWithStyleParams,
+      bladeOutIni: '',
+      hwProfile: { numBlades: 1, numButtons: 1, hasBladeDetect: false },
+    });
+
+    expect(doc.banks.blade_in.presets[0].blades[0].styleParams).toEqual({
+      flicker_depth: '15000',
+      custom_mix: '8000',
+    });
+
+    // Core params unaffected
+    expect(doc.banks.blade_in.presets[0].blades[0].params.base_color).toBe('Blue');
+    expect(doc.banks.blade_in.presets[0].blades[0].params).not.toHaveProperty('param.flicker_depth');
+
+    // Round-trip: rebuild INI and verify param.* keys are preserved
+    const rebuilt = parseIni(buildBladeInIni(doc));
+    const preset = rebuilt.find((s) => s.name.toLowerCase() === 'preset1');
+    expect(preset?.params['blade1_param.flicker_depth']).toBe('15000');
+    expect(preset?.params['blade1_param.custom_mix']).toBe('8000');
+  });
 });

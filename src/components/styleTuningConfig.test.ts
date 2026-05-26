@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { generatedStyleSchema } from '../config/generatedStyleSchema';
 import {
   STYLE_TUNING_ARGS,
   getStyleTuningDefault,
@@ -8,6 +9,9 @@ import {
   getOffStateDefault,
   getOffStateRateMsValue,
   getOffStateValue,
+  getSchemaControlsForStyle,
+  getBasicSchemaControls,
+  getAdvancedSchemaControls,
 } from './styleTuningConfig';
 
 const EXPECTED_STYLE_TUNING_METADATA = [
@@ -103,5 +107,88 @@ describe('off-state helpers', () => {
     expect(getOffStateRateMsValue({ off_rate_ms: '5' })).toBe('10');
     expect(getOffStateRateMsValue({ off_rate_ms: '1200' })).toBe('1200');
     expect(getOffStateRateMsValue({ off_rate_ms: '999999' })).toBe('60000');
+  });
+});
+
+describe('schema-driven control partitioning', () => {
+  it('returns all schema controls for audioflicker style', () => {
+    const controls = getSchemaControlsForStyle('audioflicker');
+    const keys = controls.map((c) => c.key);
+    expect(keys).toContain('base_color');
+    expect(keys).toContain('alt_color');
+    expect(keys).toContain('lb_color');
+    expect(keys).toContain('style_option');
+    // Unmapped symbols are intentionally filtered from schema controls.
+    expect(keys).not.toContain('alt_color2');
+  });
+
+  it('places base_color in basic controls for audioflicker', () => {
+    const basic = getBasicSchemaControls('audioflicker');
+    const keys = basic.map((c) => c.key);
+    expect(keys).toContain('base_color');
+    expect(keys).toContain('alt_color');
+    expect(keys).toContain('blast_color');
+    expect(keys).toContain('clash_color');
+    expect(keys).toContain('lockup_color');
+  });
+
+  it('places advanced mapped controls in advanced section for audioflicker', () => {
+    const advanced = getAdvancedSchemaControls('audioflicker');
+    const keys = advanced.map((c) => c.key);
+    expect(keys).toContain('lb_color');
+    expect(keys).toContain('drag_color');
+    expect(keys).toContain('stab_color');
+    // Secondary params are currently filtered because their arg symbols
+    // are not representable in the current preview arg layout.
+    expect(keys).not.toContain('alt_color2');
+  });
+
+  it('does not leak basic keys into advanced or vice versa', () => {
+    const basic = getBasicSchemaControls('audioflicker').map((c) => c.key);
+    const advanced = getAdvancedSchemaControls('audioflicker').map((c) => c.key);
+    expect(basic).not.toContain('lb_color');
+    expect(advanced).not.toContain('base_color');
+  });
+
+  it('handles standard style without secondary params', () => {
+    const controls = getSchemaControlsForStyle('standard');
+    const keys = controls.map((c) => c.key);
+    expect(keys).toContain('base_color');
+    expect(keys).not.toContain('alt_color2');
+  });
+
+  it('returns empty for unknown style', () => {
+    const controls = getSchemaControlsForStyle('nonexistent_style_xyz');
+    expect(controls).toEqual([]);
+  });
+
+  it('includes style-specific params while deduplicating shared params', () => {
+    const schema = generatedStyleSchema as {
+      styles: Array<{
+        name: string;
+        core: string;
+        parser_name: string;
+        params: Array<{ key: string; arg_symbol: string }>;
+      }>;
+    };
+    schema.styles.push({
+      name: 'unit_test_style',
+      core: 'main',
+      parser_name: 'ini2_unit_test_style',
+      params: [
+          { key: 'style_specific_option', arg_symbol: 'STYLE_OPTION_ARG' },
+        { key: 'base_color', arg_symbol: 'BASE_COLOR_ARG' },
+      ],
+    });
+
+    try {
+      const controls = getSchemaControlsForStyle('unit_test_style');
+      const keys = controls.map((c) => c.key);
+
+      expect(keys).toContain('style_specific_option');
+      expect(keys.filter((k) => k === 'base_color')).toHaveLength(1);
+    } finally {
+      schema.styles.pop();
+    }
   });
 });

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import App from '../App';
 import { buildBladeInIni } from '../config/normalizeConfig';
 import type { ConfigDocument } from '../config/types';
@@ -298,5 +298,50 @@ describe('preset UI integration', () => {
     expect(blade2?.params.off_color).toBe('Magenta');
     expect(blade2?.params.off_mode).toBe('random');
     expect(blade2?.params.off_rate_ms).toBe('1800');
+  });
+
+  it('renders basic and advanced schema-driven control sections', () => {
+    render(<PresetEditor />);
+
+    expect(screen.getByText('Basic Style Controls')).toBeTruthy();
+    expect(screen.getByText('Advanced Style Controls')).toBeTruthy();
+  });
+
+  it('shows base_color in basic controls section for standard style', () => {
+    render(<PresetEditor />);
+
+    const basicSection = screen.getByTestId('basic-style-controls');
+    expect(basicSection.textContent).toContain('Base Color');
+  });
+
+  it('shows advanced params in the advanced controls section', () => {
+    render(<PresetEditor />);
+
+    const advancedSection = screen.getByTestId('advanced-style-controls');
+    expect(advancedSection.textContent).toContain('Lb Color');
+  });
+
+  it('reads schema control values from styleParams and writes edits back via param namespace', () => {
+    const doc = makeDoc(2);
+    doc.banks.blade_in.presets[0].blades[0].styleParams = { style_option: '2' };
+    useConfigStore.setState({
+      sections: parseIni(buildBladeInIni(doc)),
+      doc,
+      activeBank: 'blade_in',
+      activePresetIndex: 0,
+      activeBladeIndex: 0,
+      isDirty: false,
+    });
+
+    render(<PresetEditor />);
+
+    const basicSection = screen.getByTestId('basic-style-controls');
+    const styleOptionInput = within(basicSection).getByDisplayValue('2') as HTMLInputElement;
+    fireEvent.change(styleOptionInput, { target: { value: '7' } });
+
+    const state = useConfigStore.getState();
+    const presetSection = state.sections.find((section) => section.name.toLowerCase() === 'preset1');
+    expect(state.doc?.banks.blade_in.presets[0].blades[0].styleParams?.style_option).toBe('7');
+    expect(presetSection?.params['blade1_param.style_option']).toBe('7');
   });
 });

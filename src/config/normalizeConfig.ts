@@ -14,6 +14,7 @@ import type {
 
 const CORE_PRESET_KEYS = new Set(['name', 'font', 'track']);
 const BLADE_PARAM_KEY = /^blade(\d+)_(.+)$/i;
+const STYLE_PARAM_PREFIX = 'param.';
 const NUM_BUTTON_KEYS = new Set(['num_buttons', 'numbuttons']);
 
 export interface NormalizeConfigInput {
@@ -110,7 +111,9 @@ function inferNumButtonsFromSections(bladeInSections: IniSection[], bladeOutSect
 
 function normalizePreset(section: IniSection, numBlades: number): PresetConfig {
   const legacyBladeParams: Record<string, string> = {};
+  const legacyStyleParams: Record<string, string> = {};
   const perBladeParams = new Map<number, Record<string, string>>();
+  const perBladeStyleParams = new Map<number, Record<string, string>>();
 
   Object.entries(section.params).forEach(([rawKey, value]) => {
     const key = rawKey.toLowerCase();
@@ -120,15 +123,26 @@ function normalizePreset(section: IniSection, numBlades: number): PresetConfig {
       const bladeIndex = Number.parseInt(match[1], 10) - 1;
       if (bladeIndex >= 0) {
         const fieldName = match[2];
-        const existing = perBladeParams.get(bladeIndex) ?? {};
-        existing[fieldName] = value;
-        perBladeParams.set(bladeIndex, existing);
+        if (fieldName.startsWith(STYLE_PARAM_PREFIX)) {
+          const paramName = fieldName.slice(STYLE_PARAM_PREFIX.length);
+          const existing = perBladeStyleParams.get(bladeIndex) ?? {};
+          existing[paramName] = value;
+          perBladeStyleParams.set(bladeIndex, existing);
+        } else {
+          const existing = perBladeParams.get(bladeIndex) ?? {};
+          existing[fieldName] = value;
+          perBladeParams.set(bladeIndex, existing);
+        }
       }
       return;
     }
 
     if (!CORE_PRESET_KEYS.has(key)) {
-      legacyBladeParams[key] = value;
+      if (key.startsWith(STYLE_PARAM_PREFIX)) {
+        legacyStyleParams[key.slice(STYLE_PARAM_PREFIX.length)] = value;
+      } else {
+        legacyBladeParams[key] = value;
+      }
     }
   });
 
@@ -139,12 +153,16 @@ function normalizePreset(section: IniSection, numBlades: number): PresetConfig {
       ...legacyBladeParams,
       ...(perBladeParams.get(bladeIndex) ?? {}),
     };
+    const mergedStyleParams = {
+      ...legacyStyleParams,
+      ...(perBladeStyleParams.get(bladeIndex) ?? {}),
+    };
 
     const style = mergedParams.style ?? 'standard';
     const bladeParams = { ...mergedParams };
     delete bladeParams.style;
 
-    blades.push({ style, params: bladeParams });
+    blades.push({ style, params: bladeParams, styleParams: mergedStyleParams });
   }
 
   return {
@@ -165,13 +183,14 @@ function normalizeBank(sections: IniSection[], numBlades: number): { presets: Pr
 function normalizeBladeList(preset: PresetConfig, numBlades: number): BladeStyleConfig[] {
   const normalized: BladeStyleConfig[] = [];
   const totalBlades = numBlades;
-  const fallbackBlade = preset.blades[0] ?? { style: 'standard', params: {} };
+  const fallbackBlade = preset.blades[0] ?? { style: 'standard', params: {}, styleParams: {} };
 
   for (let bladeIndex = 0; bladeIndex < totalBlades; bladeIndex += 1) {
     const sourceBlade = preset.blades[bladeIndex] ?? fallbackBlade;
     normalized.push({
       style: sourceBlade.style,
       params: { ...sourceBlade.params },
+      styleParams: { ...sourceBlade.styleParams },
     });
   }
 
@@ -210,6 +229,9 @@ function buildBankIni(doc: ConfigDocument, bank: ConfigBank): string {
       params[`blade${bladeOrdinal}_style`] = blade.style;
       Object.entries(blade.params).forEach(([key, value]) => {
         params[`blade${bladeOrdinal}_${key}`] = value;
+      });
+      Object.entries(blade.styleParams ?? {}).forEach(([key, value]) => {
+        params[`blade${bladeOrdinal}_${STYLE_PARAM_PREFIX}${key}`] = value;
       });
     });
 

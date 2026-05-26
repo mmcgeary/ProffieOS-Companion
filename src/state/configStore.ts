@@ -94,12 +94,13 @@ const buildSectionsForBank = (doc: ConfigDocument, bank: ConfigBank): IniSection
 const cloneBlade = (blade: BladeStyleConfig): BladeStyleConfig => ({
   style: blade.style,
   params: { ...blade.params },
+  styleParams: { ...(blade.styleParams ?? {}) },
 });
 
 const ensureBladeAtIndex = (blades: BladeStyleConfig[], bladeIndex: number): BladeStyleConfig[] => {
   const next = blades.map(cloneBlade);
   while (next.length <= bladeIndex) {
-    next.push({ style: 'standard', params: {} });
+    next.push({ style: 'standard', params: {}, styleParams: {} });
   }
   return next;
 };
@@ -114,6 +115,7 @@ const createDefaultPreset = (numBlades: number): PresetConfig => ({
       base_color: 'Blue',
       alt_color: 'Cyan',
     },
+    styleParams: {},
   })),
 });
 
@@ -228,17 +230,35 @@ const syncPresetValue = (
   if (parsedBladeParam) {
     const blades = ensureBladeAtIndex(preset.blades, parsedBladeParam.bladeIndex);
     const blade = blades[parsedBladeParam.bladeIndex];
-    blades[parsedBladeParam.bladeIndex] =
-      parsedBladeParam.field.toLowerCase() === 'style'
-        ? { ...blade, style: value }
-        : { ...blade, params: { ...blade.params, [parsedBladeParam.field]: value } };
+    const field = parsedBladeParam.field;
+
+    if (field.toLowerCase() === 'style') {
+      blades[parsedBladeParam.bladeIndex] = { ...blade, style: value };
+    } else if (field.startsWith('param.')) {
+      const paramName = field.slice('param.'.length);
+      blades[parsedBladeParam.bladeIndex] = {
+        ...blade,
+        styleParams: { ...blade.styleParams, [paramName]: value },
+      };
+    } else {
+      blades[parsedBladeParam.bladeIndex] = {
+        ...blade,
+        params: { ...blade.params, [field]: value },
+      };
+    }
     return { ...preset, blades };
   }
 
   const bladeIndex = clampIndex(activeBladeIndex, Math.max(0, preset.blades.length - 1));
   const blades = ensureBladeAtIndex(preset.blades, bladeIndex);
   const blade = blades[bladeIndex];
-  blades[bladeIndex] = { ...blade, params: { ...blade.params, [key]: value } };
+
+  if (key.startsWith('param.')) {
+    const paramName = key.slice('param.'.length);
+    blades[bladeIndex] = { ...blade, styleParams: { ...blade.styleParams, [paramName]: value } };
+  } else {
+    blades[bladeIndex] = { ...blade, params: { ...blade.params, [key]: value } };
+  }
   return { ...preset, blades };
 };
 
@@ -757,10 +777,18 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
 
       const blades = ensureBladeAtIndex(preset.blades, bladeIndex);
       const blade = blades[bladeIndex];
-      blades[bladeIndex] =
-        key.toLowerCase() === 'style'
-          ? { ...blade, style: value }
-          : { ...blade, params: { ...blade.params, [key]: value } };
+
+      if (key.toLowerCase() === 'style') {
+        blades[bladeIndex] = { ...blade, style: value };
+      } else if (key.startsWith('param.')) {
+        const paramName = key.slice('param.'.length);
+        blades[bladeIndex] = {
+          ...blade,
+          styleParams: { ...blade.styleParams, [paramName]: value },
+        };
+      } else {
+        blades[bladeIndex] = { ...blade, params: { ...blade.params, [key]: value } };
+      }
 
       presets[presetIndex] = {
         ...preset,
