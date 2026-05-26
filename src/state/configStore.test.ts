@@ -427,6 +427,38 @@ describe('configStore save lifecycle', () => {
     expect(presetSections[0]?.params.blade1_style).toBe('unstable');
   });
 
+  it('updateBladeParam with param.* key updates styleParams and section key blade1_param.*', () => {
+    useConfigStore.setState({
+      sections: [
+        { name: 'global', params: { volume: '80' } },
+        {
+          name: 'preset1',
+          params: {
+            name: 'First',
+            font: 'Kestis',
+            track: 'tracks/first.wav',
+            blade1_style: 'standard',
+            blade1_base_color: 'Blue',
+          },
+        },
+      ],
+      doc: makeDoc(),
+      activeBank: 'blade_in',
+    });
+
+    useConfigStore.getState().updateBladeParam(0, 0, 'param.flicker_depth', '15000');
+
+    const state = useConfigStore.getState() as ReturnType<typeof useConfigStore.getState> & {
+      doc: ConfigDocument;
+    };
+    // styleParams updated in doc
+    expect(state.doc.banks.blade_in.presets[0].blades[0].styleParams).toEqual({
+      flicker_depth: '15000',
+    });
+    // section key uses blade1_param.flicker_depth
+    expect(state.sections[1]?.params['blade1_param.flicker_depth']).toBe('15000');
+  });
+
   it('preserves dual-blade presets when hardware profile command falls back to single-blade defaults', async () => {
     serialManagerMock.getHardwareProfile.mockResolvedValue({
       numBlades: 1,

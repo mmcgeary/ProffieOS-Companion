@@ -94,7 +94,7 @@ const buildSectionsForBank = (doc: ConfigDocument, bank: ConfigBank): IniSection
 const cloneBlade = (blade: BladeStyleConfig): BladeStyleConfig => ({
   style: blade.style,
   params: { ...blade.params },
-  styleParams: { ...blade.styleParams },
+  styleParams: { ...(blade.styleParams ?? {}) },
 });
 
 const ensureBladeAtIndex = (blades: BladeStyleConfig[], bladeIndex: number): BladeStyleConfig[] => {
@@ -798,9 +798,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       const newSections = [...state.sections];
       const sectionIndex = resolveSectionIndexFromPresetIndex(newSections, presetIndex);
       if (sectionIndex >= 0 && newSections[sectionIndex]) {
-        const sectionKey = key.startsWith('param.')
-          ? `blade${bladeIndex + 1}_${key}`
-          : `blade${bladeIndex + 1}_${key}`;
+        const sectionKey = `blade${bladeIndex + 1}_${key}`;
         newSections[sectionIndex] = {
           ...newSections[sectionIndex],
           params: {

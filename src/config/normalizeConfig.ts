@@ -230,7 +230,7 @@ function buildBankIni(doc: ConfigDocument, bank: ConfigBank): string {
       Object.entries(blade.params).forEach(([key, value]) => {
         params[`blade${bladeOrdinal}_${key}`] = value;
       });
-      Object.entries(blade.styleParams).forEach(([key, value]) => {
+      Object.entries(blade.styleParams ?? {}).forEach(([key, value]) => {
         params[`blade${bladeOrdinal}_${STYLE_PARAM_PREFIX}${key}`] = value;
       });
     });

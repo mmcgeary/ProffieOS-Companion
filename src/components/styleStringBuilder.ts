@@ -39,7 +39,11 @@ const ARG_INDEX_BY_TUNING_KEY: Partial<Record<StyleTuningKey, number>> = {
   rainbow_speed: 30,
 };
 
-/** Maps schema arg_symbol values to style-string arg positions. */
+/**
+ * Maps schema arg_symbol values to style-string arg positions.
+ * Aligned to the ini_style_args contract used by companion/firmware.
+ * Symbols not in this map are skipped silently during placement.
+ */
 const ARG_INDEX_BY_SYMBOL: Record<string, number> = {
   BASE_COLOR_ARG: 1,
   ALT_COLOR_ARG: 2,
@@ -48,67 +52,14 @@ const ARG_INDEX_BY_SYMBOL: Record<string, number> = {
   BLAST_COLOR_ARG: 5,
   CLASH_COLOR_ARG: 6,
   LOCKUP_COLOR_ARG: 7,
-  LOCKUP_POSITION_ARG: 8,
+  LB_COLOR_ARG: 8,
   DRAG_COLOR_ARG: 9,
-  DRAG_SIZE_ARG: 10,
-  LB_COLOR_ARG: 11,
-  STAB_COLOR_ARG: 12,
-  MELT_SIZE_ARG: 13,
-  SWING_COLOR_ARG: 14,
-  SWING_OPTION_ARG: 15,
-  EMITTER_COLOR_ARG: 16,
-  EMITTER_SIZE_ARG: 17,
-  PREON_COLOR_ARG: 18,
-  PREON_OPTION_ARG: 19,
-  PREON_SIZE_ARG: 20,
-  RETRACTION_OPTION_ARG: 21,
+  STAB_COLOR_ARG: 10,
+  EMITTER_COLOR_ARG: 11,
   IGNITION_TIME_ARG: 12,
   RETRACTION_TIME_ARG: 13,
-  IGNITION_DELAY_ARG: 22,
-  IGNITION_COLOR_ARG: 23,
-  IGNITION_POWER_UP_ARG: 24,
-  RETRACTION_DELAY_ARG: 25,
-  RETRACTION_COLOR_ARG: 26,
-  RETRACTION_COOL_DOWN_ARG: 27,
-  POSTOFF_COLOR_ARG: 28,
   OFF_COLOR_ARG: 14,
   OFF_OPTION_ARG: 15,
-  ALT_COLOR2_ARG: 31,
-  ALT_COLOR3_ARG: 32,
-  STYLE_OPTION2_ARG: 33,
-  STYLE_OPTION3_ARG: 34,
-  IGNITION_OPTION2_ARG: 35,
-  RETRACTION_OPTION2_ARG: 36,
-};
-
-/** Builds a key→argIndex lookup from schema for a given style. */
-const buildSchemaArgMap = (styleName: string): Map<string, number> => {
-  const map = new Map<string, number>();
-  const normalized = styleName.trim().toLowerCase();
-  const styleDef = generatedStyleSchema.styles.find(
-    (s) => s.name.toLowerCase() === normalized,
-  );
-  if (!styleDef) return map;
-
-  const addParams = (params: ReadonlyArray<{ key: string; arg_symbol: string }>) => {
-    for (const param of params) {
-      const index = ARG_INDEX_BY_SYMBOL[param.arg_symbol];
-      if (index !== undefined && !map.has(param.key)) {
-        map.set(param.key, index);
-      }
-    }
-  };
-
-  const coreKey = styleDef.core as keyof typeof generatedStyleSchema.sharedCore;
-  const sharedCore = generatedStyleSchema.sharedCore[coreKey];
-  if (sharedCore) addParams(sharedCore.params);
-  addParams(styleDef.params);
-  if ('include_secondary' in styleDef && styleDef.include_secondary) {
-    const secondary = generatedStyleSchema.sharedCore.secondary;
-    if (secondary) addParams(secondary.params);
-  }
-
-  return map;
 };
 
 const COLOR_ARG_SYMBOLS = new Set([
@@ -134,7 +85,6 @@ export const buildStyleString = (blade: PresetConfig['blades'][number]): string 
   };
 
   // Schema-driven placement for params with known arg positions
-  const schemaArgMap = buildSchemaArgMap(blade.style || 'standard');
   const normalized = (blade.style || 'standard').trim().toLowerCase();
   const styleDef = generatedStyleSchema.styles.find(
     (s) => s.name.toLowerCase() === normalized,

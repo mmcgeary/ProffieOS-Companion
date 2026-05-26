@@ -53,4 +53,33 @@ describe('styleStringBuilder', () => {
     const tokens = style.split(' ');
     expect(tokens[5]).toBe('65535,0,0'); // Red from styleParams wins
   });
+
+  it('stab_color at arg10 and ignition_time at arg12 coexist without collision', () => {
+    const style = buildStyleString({
+      style: 'standard',
+      params: {
+        base_color: 'Blue',
+        alt_color: 'Cyan',
+        stab_color: 'Red',
+        ignition_time: '500',
+      },
+    });
+    const tokens = style.split(' ');
+    // stab_color should NOT collide with ignition_time
+    expect(tokens[12]).toBe('500'); // ignition_time at arg12
+    // Verify other non-colliding canonical positions
+    expect(tokens[13]).not.toBe('500'); // retraction_time separate
+    expect(tokens[14]).toBe('0,0,0'); // off_color default
+    expect(tokens[15]).toBe('1'); // off_option default
+  });
+
+  it('handles undefined styleParams gracefully', () => {
+    const style = buildStyleString({
+      style: 'standard',
+      params: { base_color: 'Blue', alt_color: 'Cyan' },
+    });
+    const tokens = style.split(' ');
+    expect(tokens[0]).toBe('ini_standard');
+    expect(tokens[1]).toBe('0,0,65535'); // Blue
+  });
 });
