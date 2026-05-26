@@ -9,10 +9,9 @@ import { buildStyleString } from './styleStringBuilder';
 import {
   OFF_MODE_OPTIONS,
   getOffStateValue,
+  getSchemaControlsForStyle,
   getStyleTuningValue,
   getVisibleStyleTuningArgs,
-  getBasicSchemaControls,
-  getAdvancedSchemaControls,
   type StyleTuningKey,
 } from './styleTuningConfig';
 
@@ -41,6 +40,15 @@ const COLOR_FIELDS: Array<{ key: string; label: string }> = [
   { key: 'clash_color', label: 'Clash Color' },
   { key: 'lockup_color', label: 'Lockup Color' },
 ];
+
+const SCHEMA_CONTROL_INPUT_STYLE: React.CSSProperties = {
+  width: '100%',
+  padding: '10px',
+  borderRadius: '6px',
+  border: '1px solid var(--border)',
+  background: 'var(--bg)',
+  color: 'var(--text-h)',
+};
 
 const clamp = (value: number, min: number, max: number): number => {
   if (value < min) return min;
@@ -258,8 +266,13 @@ export const PresetEditor: React.FC = () => {
 
   const styleString = buildStyleString(selectedBlade);
   const visibleStyleTuningArgs = getVisibleStyleTuningArgs(selectedBlade.style, selectedBlade.params);
-  const basicControls = getBasicSchemaControls(selectedBlade.style);
-  const advancedControls = getAdvancedSchemaControls(selectedBlade.style);
+  const schemaControls = getSchemaControlsForStyle(selectedBlade.style);
+  const controlGroups: Record<'basic' | 'advanced', typeof schemaControls> = { basic: [], advanced: [] };
+  for (const control of schemaControls) {
+    controlGroups[control.uiLevel].push(control);
+  }
+  const basicControls = controlGroups.basic;
+  const advancedControls = controlGroups.advanced;
 
   return (
     <div
@@ -529,14 +542,7 @@ export const PresetEditor: React.FC = () => {
                           type="text"
                           value={selectedBlade.params[ctrl.key] || ''}
                           onChange={(event) => handleBladeFieldChange(ctrl.key, event.target.value)}
-                          style={{
-                            width: '100%',
-                            padding: '10px',
-                            borderRadius: '6px',
-                            border: '1px solid var(--border)',
-                            background: 'var(--bg)',
-                            color: 'var(--text-h)',
-                          }}
+                          style={SCHEMA_CONTROL_INPUT_STYLE}
                         />
                       </div>
                     ))}
@@ -559,14 +565,7 @@ export const PresetEditor: React.FC = () => {
                           type="text"
                           value={selectedBlade.params[ctrl.key] || ''}
                           onChange={(event) => handleBladeFieldChange(ctrl.key, event.target.value)}
-                          style={{
-                            width: '100%',
-                            padding: '10px',
-                            borderRadius: '6px',
-                            border: '1px solid var(--border)',
-                            background: 'var(--bg)',
-                            color: 'var(--text-h)',
-                          }}
+                          style={SCHEMA_CONTROL_INPUT_STYLE}
                         />
                       </div>
                     ))}

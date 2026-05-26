@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { generatedStyleSchema } from '../config/generatedStyleSchema';
 import {
   STYLE_TUNING_ARGS,
   getStyleTuningDefault,
@@ -158,5 +159,35 @@ describe('schema-driven control partitioning', () => {
   it('returns empty for unknown style', () => {
     const controls = getSchemaControlsForStyle('nonexistent_style_xyz');
     expect(controls).toEqual([]);
+  });
+
+  it('includes style-specific params while deduplicating shared params', () => {
+    const schema = generatedStyleSchema as {
+      styles: Array<{
+        name: string;
+        core: string;
+        parser_name: string;
+        params: Array<{ key: string; arg_symbol: string }>;
+      }>;
+    };
+    schema.styles.push({
+      name: 'unit_test_style',
+      core: 'main',
+      parser_name: 'ini2_unit_test_style',
+      params: [
+        { key: 'style_specific_color', arg_symbol: 'STYLE_SPECIFIC_COLOR_ARG' },
+        { key: 'base_color', arg_symbol: 'BASE_COLOR_ARG' },
+      ],
+    });
+
+    try {
+      const controls = getSchemaControlsForStyle('unit_test_style');
+      const keys = controls.map((c) => c.key);
+
+      expect(keys).toContain('style_specific_color');
+      expect(keys.filter((k) => k === 'base_color')).toHaveLength(1);
+    } finally {
+      schema.styles.pop();
+    }
   });
 });
