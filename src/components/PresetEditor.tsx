@@ -253,7 +253,7 @@ export const PresetEditor: React.FC = () => {
 
   const selectedBlade =
     activePreset.blades[selectedBladeIndex] ||
-    activePreset.blades[0] || { style: 'standard', params: {} };
+    activePreset.blades[0] || { style: 'standard', params: {}, styleParams: {} };
 
   const handlePresetFieldChange = (key: 'name' | 'font' | 'track', value: string) => {
     if (activeSectionIndex < 0) return;
@@ -262,6 +262,13 @@ export const PresetEditor: React.FC = () => {
 
   const handleBladeFieldChange = (key: string, value: string) => {
     updateBladeParam(activePresetIndex, selectedBladeIndex, key, value);
+  };
+
+  const getSchemaControlValue = (key: string): string =>
+    selectedBlade.styleParams?.[key] ?? selectedBlade.params[key] ?? '';
+
+  const handleSchemaControlChange = (key: string, value: string): void => {
+    handleBladeFieldChange(`param.${key}`, value);
   };
 
   const styleString = buildStyleString(selectedBlade);
@@ -540,8 +547,8 @@ export const PresetEditor: React.FC = () => {
                         </label>
                         <input
                           type="text"
-                          value={selectedBlade.params[ctrl.key] || ''}
-                          onChange={(event) => handleBladeFieldChange(ctrl.key, event.target.value)}
+                          value={getSchemaControlValue(ctrl.key)}
+                          onChange={(event) => handleSchemaControlChange(ctrl.key, event.target.value)}
                           style={SCHEMA_CONTROL_INPUT_STYLE}
                         />
                       </div>
@@ -563,8 +570,8 @@ export const PresetEditor: React.FC = () => {
                         </label>
                         <input
                           type="text"
-                          value={selectedBlade.params[ctrl.key] || ''}
-                          onChange={(event) => handleBladeFieldChange(ctrl.key, event.target.value)}
+                          value={getSchemaControlValue(ctrl.key)}
+                          onChange={(event) => handleSchemaControlChange(ctrl.key, event.target.value)}
                           style={SCHEMA_CONTROL_INPUT_STYLE}
                         />
                       </div>

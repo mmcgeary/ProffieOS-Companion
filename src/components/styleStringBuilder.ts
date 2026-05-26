@@ -1,4 +1,5 @@
 import { generatedStyleSchema } from '../config/generatedStyleSchema';
+import { ARG_INDEX_BY_SYMBOL } from '../config/styleArgSymbols';
 import type { PresetConfig } from '../config/types';
 import {
   getOffModeSelectorValue,
@@ -37,29 +38,6 @@ const ARG_INDEX_BY_TUNING_KEY: Partial<Record<StyleTuningKey, number>> = {
   heat_rand: 28,
   fire_cooling: 29,
   rainbow_speed: 30,
-};
-
-/**
- * Maps schema arg_symbol values to style-string arg positions.
- * Aligned to the ini_style_args contract used by companion/firmware.
- * Symbols not in this map are skipped silently during placement.
- */
-const ARG_INDEX_BY_SYMBOL: Record<string, number> = {
-  BASE_COLOR_ARG: 1,
-  ALT_COLOR_ARG: 2,
-  STYLE_OPTION_ARG: 3,
-  IGNITION_OPTION_ARG: 4,
-  BLAST_COLOR_ARG: 5,
-  CLASH_COLOR_ARG: 6,
-  LOCKUP_COLOR_ARG: 7,
-  LB_COLOR_ARG: 8,
-  DRAG_COLOR_ARG: 9,
-  STAB_COLOR_ARG: 10,
-  EMITTER_COLOR_ARG: 11,
-  IGNITION_TIME_ARG: 12,
-  RETRACTION_TIME_ARG: 13,
-  OFF_COLOR_ARG: 14,
-  OFF_OPTION_ARG: 15,
 };
 
 const COLOR_ARG_SYMBOLS = new Set([
@@ -138,12 +116,12 @@ export const buildStyleString = (blade: PresetConfig['blades'][number]): string 
   setArgIfUnset(13, getStyleTuningValue(mergedParams, 'retraction_time'));
   setArgIfUnset(14, resolveColor(getOffStateValue(mergedParams, 'off_color')));
   setArgIfUnset(15, getOffModeSelectorValue(getOffStateValue(mergedParams, 'off_mode')));
-  args[16] = getOffStateRateMsValue(mergedParams);
+  setArgIfUnset(16, getOffStateRateMsValue(mergedParams));
 
   // Tuning keys at their canonical positions
   Object.entries(ARG_INDEX_BY_TUNING_KEY).forEach(([key, index]) => {
     if (index === undefined) return;
-    args[index] = getStyleTuningValue(mergedParams, key as StyleTuningKey);
+    setArgIfUnset(index, getStyleTuningValue(mergedParams, key as StyleTuningKey));
   });
 
   return args.join(' ');

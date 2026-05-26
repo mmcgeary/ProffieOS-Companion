@@ -116,10 +116,10 @@ describe('schema-driven control partitioning', () => {
     const keys = controls.map((c) => c.key);
     expect(keys).toContain('base_color');
     expect(keys).toContain('alt_color');
-    expect(keys).toContain('melt_size');
+    expect(keys).toContain('lb_color');
     expect(keys).toContain('style_option');
-    // audioflicker includes secondary params
-    expect(keys).toContain('alt_color2');
+    // Unmapped symbols are intentionally filtered from schema controls.
+    expect(keys).not.toContain('alt_color2');
   });
 
   it('places base_color in basic controls for audioflicker', () => {
@@ -132,20 +132,21 @@ describe('schema-driven control partitioning', () => {
     expect(keys).toContain('lockup_color');
   });
 
-  it('places melt_size in advanced controls for audioflicker', () => {
+  it('places advanced mapped controls in advanced section for audioflicker', () => {
     const advanced = getAdvancedSchemaControls('audioflicker');
     const keys = advanced.map((c) => c.key);
-    expect(keys).toContain('melt_size');
+    expect(keys).toContain('lb_color');
     expect(keys).toContain('drag_color');
-    expect(keys).toContain('emitter_size');
-    // secondary params are advanced
-    expect(keys).toContain('alt_color2');
+    expect(keys).toContain('stab_color');
+    // Secondary params are currently filtered because their arg symbols
+    // are not representable in the current preview arg layout.
+    expect(keys).not.toContain('alt_color2');
   });
 
   it('does not leak basic keys into advanced or vice versa', () => {
     const basic = getBasicSchemaControls('audioflicker').map((c) => c.key);
     const advanced = getAdvancedSchemaControls('audioflicker').map((c) => c.key);
-    expect(basic).not.toContain('melt_size');
+    expect(basic).not.toContain('lb_color');
     expect(advanced).not.toContain('base_color');
   });
 
@@ -175,7 +176,7 @@ describe('schema-driven control partitioning', () => {
       core: 'main',
       parser_name: 'ini2_unit_test_style',
       params: [
-        { key: 'style_specific_color', arg_symbol: 'STYLE_SPECIFIC_COLOR_ARG' },
+          { key: 'style_specific_option', arg_symbol: 'STYLE_OPTION_ARG' },
         { key: 'base_color', arg_symbol: 'BASE_COLOR_ARG' },
       ],
     });
@@ -184,7 +185,7 @@ describe('schema-driven control partitioning', () => {
       const controls = getSchemaControlsForStyle('unit_test_style');
       const keys = controls.map((c) => c.key);
 
-      expect(keys).toContain('style_specific_color');
+      expect(keys).toContain('style_specific_option');
       expect(keys.filter((k) => k === 'base_color')).toHaveLength(1);
     } finally {
       schema.styles.pop();

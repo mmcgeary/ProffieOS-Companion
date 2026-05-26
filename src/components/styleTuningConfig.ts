@@ -1,4 +1,5 @@
 import { generatedStyleSchema } from '../config/generatedStyleSchema';
+import { SUPPORTED_SCHEMA_ARG_SYMBOLS } from '../config/styleArgSymbols';
 import type { UILevel } from '../config/types';
 
 export type StyleTuningArg = {
@@ -208,6 +209,9 @@ export const getSchemaControlsForStyle = (styleName: string): SchemaControl[] =>
 
   const addParams = (params: ReadonlyArray<{ key: string; arg_symbol: string }>) => {
     for (const param of params) {
+      if (!SUPPORTED_SCHEMA_ARG_SYMBOLS.has(param.arg_symbol)) {
+        continue;
+      }
       if (!seen.has(param.key)) {
         seen.add(param.key);
         controls.push(toSchemaControl(param));
