@@ -11,6 +11,8 @@ import {
   getOffStateValue,
   getStyleTuningValue,
   getVisibleStyleTuningArgs,
+  getBasicSchemaControls,
+  getAdvancedSchemaControls,
   type StyleTuningKey,
 } from './styleTuningConfig';
 
@@ -256,6 +258,8 @@ export const PresetEditor: React.FC = () => {
 
   const styleString = buildStyleString(selectedBlade);
   const visibleStyleTuningArgs = getVisibleStyleTuningArgs(selectedBlade.style, selectedBlade.params);
+  const basicControls = getBasicSchemaControls(selectedBlade.style);
+  const advancedControls = getAdvancedSchemaControls(selectedBlade.style);
 
   return (
     <div
@@ -509,6 +513,66 @@ export const PresetEditor: React.FC = () => {
                   />
                 </div>
               ))}
+
+              {basicControls.length > 0 && (
+                <div data-testid="basic-style-controls" style={{ gridColumn: '1 / -1' }}>
+                  <h4 style={{ margin: '8px 0', fontSize: '13px', textTransform: 'uppercase', color: 'var(--text)' }}>
+                    Basic Style Controls
+                  </h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    {basicControls.map((ctrl) => (
+                      <div key={ctrl.key}>
+                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 500 }}>
+                          {ctrl.label}
+                        </label>
+                        <input
+                          type="text"
+                          value={selectedBlade.params[ctrl.key] || ''}
+                          onChange={(event) => handleBladeFieldChange(ctrl.key, event.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: '10px',
+                            borderRadius: '6px',
+                            border: '1px solid var(--border)',
+                            background: 'var(--bg)',
+                            color: 'var(--text-h)',
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {advancedControls.length > 0 && (
+                <details data-testid="advanced-style-controls" style={{ gridColumn: '1 / -1' }}>
+                  <summary style={{ margin: '8px 0', fontSize: '13px', textTransform: 'uppercase', color: 'var(--text)', cursor: 'pointer', fontWeight: 600 }}>
+                    Advanced Style Controls
+                  </summary>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>
+                    {advancedControls.map((ctrl) => (
+                      <div key={ctrl.key}>
+                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 500 }}>
+                          {ctrl.label}
+                        </label>
+                        <input
+                          type="text"
+                          value={selectedBlade.params[ctrl.key] || ''}
+                          onChange={(event) => handleBladeFieldChange(ctrl.key, event.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: '10px',
+                            borderRadius: '6px',
+                            border: '1px solid var(--border)',
+                            background: 'var(--bg)',
+                            color: 'var(--text-h)',
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              )}
 
               <div style={{ gridColumn: '1 / -1' }}>
                 <h4 style={{ margin: '8px 0', fontSize: '13px', textTransform: 'uppercase', color: 'var(--text)' }}>

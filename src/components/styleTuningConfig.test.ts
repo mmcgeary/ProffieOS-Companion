@@ -8,6 +8,9 @@ import {
   getOffStateDefault,
   getOffStateRateMsValue,
   getOffStateValue,
+  getSchemaControlsForStyle,
+  getBasicSchemaControls,
+  getAdvancedSchemaControls,
 } from './styleTuningConfig';
 
 const EXPECTED_STYLE_TUNING_METADATA = [
@@ -103,5 +106,57 @@ describe('off-state helpers', () => {
     expect(getOffStateRateMsValue({ off_rate_ms: '5' })).toBe('10');
     expect(getOffStateRateMsValue({ off_rate_ms: '1200' })).toBe('1200');
     expect(getOffStateRateMsValue({ off_rate_ms: '999999' })).toBe('60000');
+  });
+});
+
+describe('schema-driven control partitioning', () => {
+  it('returns all schema controls for audioflicker style', () => {
+    const controls = getSchemaControlsForStyle('audioflicker');
+    const keys = controls.map((c) => c.key);
+    expect(keys).toContain('base_color');
+    expect(keys).toContain('alt_color');
+    expect(keys).toContain('melt_size');
+    expect(keys).toContain('style_option');
+    // audioflicker includes secondary params
+    expect(keys).toContain('alt_color2');
+  });
+
+  it('places base_color in basic controls for audioflicker', () => {
+    const basic = getBasicSchemaControls('audioflicker');
+    const keys = basic.map((c) => c.key);
+    expect(keys).toContain('base_color');
+    expect(keys).toContain('alt_color');
+    expect(keys).toContain('blast_color');
+    expect(keys).toContain('clash_color');
+    expect(keys).toContain('lockup_color');
+  });
+
+  it('places melt_size in advanced controls for audioflicker', () => {
+    const advanced = getAdvancedSchemaControls('audioflicker');
+    const keys = advanced.map((c) => c.key);
+    expect(keys).toContain('melt_size');
+    expect(keys).toContain('drag_color');
+    expect(keys).toContain('emitter_size');
+    // secondary params are advanced
+    expect(keys).toContain('alt_color2');
+  });
+
+  it('does not leak basic keys into advanced or vice versa', () => {
+    const basic = getBasicSchemaControls('audioflicker').map((c) => c.key);
+    const advanced = getAdvancedSchemaControls('audioflicker').map((c) => c.key);
+    expect(basic).not.toContain('melt_size');
+    expect(advanced).not.toContain('base_color');
+  });
+
+  it('handles standard style without secondary params', () => {
+    const controls = getSchemaControlsForStyle('standard');
+    const keys = controls.map((c) => c.key);
+    expect(keys).toContain('base_color');
+    expect(keys).not.toContain('alt_color2');
+  });
+
+  it('returns empty for unknown style', () => {
+    const controls = getSchemaControlsForStyle('nonexistent_style_xyz');
+    expect(controls).toEqual([]);
   });
 });

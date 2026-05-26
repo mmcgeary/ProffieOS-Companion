@@ -1,4 +1,5 @@
 export type ConfigBank = 'blade_in' | 'blade_out';
+export type UILevel = 'basic' | 'advanced';
 
 export interface BladeStyleConfig {
   style: string;

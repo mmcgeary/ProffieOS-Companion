@@ -299,4 +299,25 @@ describe('preset UI integration', () => {
     expect(blade2?.params.off_mode).toBe('random');
     expect(blade2?.params.off_rate_ms).toBe('1800');
   });
+
+  it('renders basic and advanced schema-driven control sections', () => {
+    render(<PresetEditor />);
+
+    expect(screen.getByText('Basic Style Controls')).toBeTruthy();
+    expect(screen.getByText('Advanced Style Controls')).toBeTruthy();
+  });
+
+  it('shows base_color in basic controls section for standard style', () => {
+    render(<PresetEditor />);
+
+    const basicSection = screen.getByTestId('basic-style-controls');
+    expect(basicSection.textContent).toContain('Base Color');
+  });
+
+  it('shows advanced params in the advanced controls section', () => {
+    render(<PresetEditor />);
+
+    const advancedSection = screen.getByTestId('advanced-style-controls');
+    expect(advancedSection.textContent).toContain('Melt Size');
+  });
 });
