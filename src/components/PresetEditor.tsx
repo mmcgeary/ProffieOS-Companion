@@ -97,17 +97,6 @@ const BUILTIN_STYLES = [
   { value: 'film_blade', label: 'Film Blade' },
 ];
 
-const COLOR_FIELDS: Array<{ key: string; label: string }> = [
-  { key: 'base_color', label: 'Base Color' },
-  { key: 'alt_color', label: 'Alt Color' },
-  { key: 'blast_color', label: 'Blast Color' },
-  { key: 'clash_color', label: 'Clash Color' },
-  { key: 'lockup_color', label: 'Lockup Color' },
-  { key: 'drag_color', label: 'Drag Color' },
-  { key: 'lb_color', label: 'Lightning Block Color' },
-  { key: 'stab_color', label: 'Stab Color' },
-];
-
 const DEFAULT_PARAM_VALUES: Record<string, string> = {
   base_color: 'Red',
   alt_color: 'White',
@@ -418,7 +407,6 @@ export const PresetEditor: React.FC = () => {
   const basicControls = controlGroups.basic; 
   const advancedControls = controlGroups.advanced;
   const schemaControlKeys = new Set(schemaControls.map((control) => control.key));
-  const legacyColorFields = COLOR_FIELDS.filter((field) => !schemaControlKeys.has(field.key));
 
   return (
     <div
@@ -645,15 +633,6 @@ export const PresetEditor: React.FC = () => {
                 </select>
               </div>
 
-              {legacyColorFields.map((field) => (
-                <ColorInput
-                  key={field.key}
-                  label={field.label}
-                  value={selectedBlade.params[field.key] ?? DEFAULT_PARAM_VALUES[field.key] ?? ''}
-                  onChange={(val) => handleBladeFieldChange(field.key, val)}
-                />
-              ))}
-
               {basicControls.length > 0 && (
                 <div data-testid="basic-style-controls" style={{ gridColumn: '1 / -1' }}>
                   <h4 style={{ margin: '8px 0', fontSize: '13px', textTransform: 'uppercase', color: 'var(--text)' }}>
@@ -662,7 +641,7 @@ export const PresetEditor: React.FC = () => {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                     {basicControls.map((ctrl) => (
                       <React.Fragment key={ctrl.key}>
-                        {ctrl.key.endsWith('_color') ? (
+                        {ctrl.key.match(/_color\d*$/) ? (
                           <ColorInput
                             label={ctrl.label}
                             value={getSchemaControlValue(ctrl.key)}
@@ -695,7 +674,7 @@ export const PresetEditor: React.FC = () => {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>
                     {advancedControls.map((ctrl) => (
                       <React.Fragment key={ctrl.key}>
-                        {ctrl.key.endsWith('_color') ? (
+                        {ctrl.key.match(/_color\d*$/) ? (
                           <ColorInput
                             label={ctrl.label}
                             value={getSchemaControlValue(ctrl.key)}
