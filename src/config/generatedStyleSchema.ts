@@ -104,7 +104,7 @@ export const generatedStyleSchema = {
     {
       "name": "hump_flicker",
       "core": "main",
-      "parser_name": "ini_humpflicker",
+      "parser_name": "hump_flicker",
       "params": [
         {
           "key": "hump_amount",
@@ -115,7 +115,7 @@ export const generatedStyleSchema = {
     {
       "name": "pulsing_stripes",
       "core": "main",
-      "parser_name": "ini_pulse",
+      "parser_name": "pulsing_stripes",
       "params": [
         {
           "key": "stripe_width",
@@ -134,7 +134,7 @@ export const generatedStyleSchema = {
     {
       "name": "energy",
       "core": "main",
-      "parser_name": "ini_lightning",
+      "parser_name": "energy",
       "include_secondary": true,
       "params": [
         {
@@ -154,7 +154,7 @@ export const generatedStyleSchema = {
     {
       "name": "fire_unstable",
       "core": "main",
-      "parser_name": "ini_unstable",
+      "parser_name": "fire_unstable",
       "include_secondary": true,
       "params": [
         {
@@ -174,7 +174,7 @@ export const generatedStyleSchema = {
     {
       "name": "plasma_blade",
       "core": "main",
-      "parser_name": "ini_strobe",
+      "parser_name": "plasma_blade",
       "include_secondary": true,
       "params": [
         {
@@ -198,12 +198,12 @@ export const generatedStyleSchema = {
     {
       "name": "rainbow_blade",
       "core": "main",
-      "parser_name": "ini_rainbow"
+      "parser_name": "rainbow_blade"
     },
     {
       "name": "energy_blade",
       "core": "main",
-      "parser_name": "ini_lightning",
+      "parser_name": "energy_blade",
       "include_secondary": true,
       "params": [
         {
@@ -223,7 +223,7 @@ export const generatedStyleSchema = {
     {
       "name": "lava_blade",
       "core": "main",
-      "parser_name": "ini_fire",
+      "parser_name": "lava_blade",
       "include_secondary": true,
       "params": [
         {
@@ -243,7 +243,7 @@ export const generatedStyleSchema = {
     {
       "name": "sparkle_blade",
       "core": "main",
-      "parser_name": "ini_strobe",
+      "parser_name": "sparkle_blade",
       "params": [
         {
           "key": "spark_mix",
@@ -254,7 +254,7 @@ export const generatedStyleSchema = {
     {
       "name": "fire_blade",
       "core": "main",
-      "parser_name": "ini_fire",
+      "parser_name": "fire_blade",
       "params": [
         {
           "key": "fire_mix",
