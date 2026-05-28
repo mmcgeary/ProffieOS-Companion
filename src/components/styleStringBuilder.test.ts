@@ -90,7 +90,7 @@ describe('styleStringBuilder', () => {
       styleParams: { hump_amount: '77' },
     });
     const tokens = style.split(' ');
-    expect(tokens[0]).toBe('ini_humpflicker');
+    expect(tokens[0]).toBe('hump_flicker');
     expect(tokens[3]).toBe('77');
     expect(tokens[1]).toBe('65535,0,65535');
   });
