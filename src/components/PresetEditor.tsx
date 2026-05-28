@@ -110,6 +110,8 @@ const COLOR_FIELDS: Array<{ key: string; label: string }> = [
 const DEFAULT_PARAM_VALUES: Record<string, string> = {
   base_color: 'Red',
   alt_color: 'White',
+  alt_color2: 'Cyan',
+  alt_color3: 'Magenta',
   blast_color: 'White',
   clash_color: 'White',
   lockup_color: 'White',
@@ -122,12 +124,35 @@ const DEFAULT_PARAM_VALUES: Record<string, string> = {
   flicker_mix: '12000',
   hump_amount: '12000',
   stripe_width: '5000',
+  stripe_speed: '3000',
   pulse_rate: '1200',
   spark_mix: '5000',
   fire_mix: '5000',
+  fire_cooling: '80',
+  fire_sparking: '160',
   blink_ms: '50',
   blink_rate: '50',
-  segment_size: '500'
+  blink_duty: '16000',
+  segment_size: '500',
+  fade_ms: '100',
+  noise_depth: '16000',
+  on_size: '3000',
+  on_rpm: '20',
+  off_rpm: '10',
+  inner_width: '4000',
+  inner_speed: '2000',
+  center_width: '2000',
+  center_speed: '3000',
+  edge_mix: '16000',
+  plasma_width: '2000',
+  plasma_speed: '3000',
+  twist_amount: '3000',
+  wave_speed: '2000',
+  off_option: '1',
+  inout_blink_ms: '50',
+  inout_blink_rate: '50',
+  inout_blink_duty: '16000',
+  inout_pulse_rate: '1200'
 };
 
 const DIRECT_SCHEMA_PARAM_KEYS = new Set([
@@ -389,7 +414,7 @@ export const PresetEditor: React.FC = () => {
   for (const control of schemaControls) {
     controlGroups[control.uiLevel].push(control);
   }
-  const basicControls = controlGroups.basic;
+  const basicControls = controlGroups.basic; 
   const advancedControls = controlGroups.advanced;
   const schemaControlKeys = new Set(schemaControls.map((control) => control.key));
   const legacyColorFields = COLOR_FIELDS.filter((field) => !schemaControlKeys.has(field.key));
@@ -753,45 +778,7 @@ export const PresetEditor: React.FC = () => {
           </div>
         </div>
 
-        <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', padding: '20px', borderRadius: '12px' }}>
-          <h3
-            style={{
-              margin: '0 0 16px 0',
-              fontSize: '14px',
-              fontWeight: 600,
-              textTransform: 'uppercase',
-              color: 'var(--text)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}
-          >
-            <Sliders size={16} /> Full Tuning Arguments
-          </h3>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
-          {visibleStyleTuningArgs.map((arg) => {
-            const value = getStyleTuningValue(selectedBlade.params, arg.key as StyleTuningKey);
-              return (
-                <div key={arg.key}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text)' }}>{arg.label}</label>
-                    <span style={{ fontSize: '12px', fontFamily: 'var(--mono)', color: 'var(--accent)' }}>{value}</span>
-                  </div>
-                  <input
-                    type="range"
-                    min={arg.min}
-                    max={arg.max}
-                    step={arg.step}
-                    value={value}
-                    onChange={(event) => handleBladeFieldChange(arg.key, event.target.value)}
-                    style={{ width: '100%', cursor: 'pointer', accentColor: 'var(--accent)' }}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        </div>
       </section>
     </div>
   );

@@ -111,8 +111,8 @@ describe('off-state helpers', () => {
 });
 
 describe('schema-driven control partitioning', () => {
-  it('returns all schema controls for audioflicker style', () => {
-    const controls = getSchemaControlsForStyle('audioflicker');
+  it('returns all schema controls for audio_flicker style', () => {
+    const controls = getSchemaControlsForStyle('audio_flicker');
     const keys = controls.map((c) => c.key);
     expect(keys).toContain('base_color');
     expect(keys).toContain('alt_color');
@@ -122,8 +122,8 @@ describe('schema-driven control partitioning', () => {
     expect(keys).not.toContain('alt_color2');
   });
 
-  it('places base_color in basic controls for audioflicker', () => {
-    const basic = getBasicSchemaControls('audioflicker');
+  it('places base_color in basic controls for audio_flicker', () => {
+    const basic = getBasicSchemaControls('audio_flicker');
     const keys = basic.map((c) => c.key);
     expect(keys).toContain('base_color');
     expect(keys).toContain('alt_color');
@@ -132,8 +132,8 @@ describe('schema-driven control partitioning', () => {
     expect(keys).toContain('lockup_color');
   });
 
-  it('places advanced mapped controls in advanced section for audioflicker', () => {
-    const advanced = getAdvancedSchemaControls('audioflicker');
+  it('places advanced mapped controls in advanced section for audio_flicker', () => {
+    const advanced = getAdvancedSchemaControls('audio_flicker');
     const keys = advanced.map((c) => c.key);
     expect(keys).toContain('lb_color');
     expect(keys).toContain('drag_color');
@@ -144,14 +144,14 @@ describe('schema-driven control partitioning', () => {
   });
 
   it('does not leak basic keys into advanced or vice versa', () => {
-    const basic = getBasicSchemaControls('audioflicker').map((c) => c.key);
-    const advanced = getAdvancedSchemaControls('audioflicker').map((c) => c.key);
+    const basic = getBasicSchemaControls('audio_flicker').map((c) => c.key);
+    const advanced = getAdvancedSchemaControls('audio_flicker').map((c) => c.key);
     expect(basic).not.toContain('lb_color');
     expect(advanced).not.toContain('base_color');
   });
 
-  it('handles standard style without secondary params', () => {
-    const controls = getSchemaControlsForStyle('standard');
+  it('handles audio_flicker style without secondary params', () => {
+    const controls = getSchemaControlsForStyle('audio_flicker');
     const keys = controls.map((c) => c.key);
     expect(keys).toContain('base_color');
     expect(keys).not.toContain('alt_color2');

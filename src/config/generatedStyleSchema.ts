@@ -75,25 +75,9 @@ export const generatedStyleSchema = {
   },
   "styles": [
     {
-      "name": "standard",
-      "core": "main",
-      "parser_name": "ini_standard"
-    },
-    {
-      "name": "audioflicker",
-      "core": "main",
-      "parser_name": "ini_ghostly",
-      "params": [
-        {
-          "key": "flicker_mix",
-          "arg_symbol": "STYLE_OPTION_ARG"
-        }
-      ]
-    },
-    {
       "name": "audio_flicker",
       "core": "main",
-      "parser_name": "ini_ghostly",
+      "parser_name": "audio_flicker",
       "params": [
         {
           "key": "flicker_mix",
@@ -357,7 +341,7 @@ export const generatedStyleSchema = {
     {
       "name": "film_blade",
       "core": "main",
-      "parser_name": "film"
+      "parser_name": "film_blade"
     }
   ]
 } as const;

@@ -34,7 +34,7 @@ const makeDoc = (numBlades = 2): ConfigDocument => ({
           font: 'Kestis',
           track: 'tracks/first.wav',
           blades: Array.from({ length: numBlades }, (_, bladeIndex) => ({
-            style: bladeIndex % 2 === 0 ? 'standard' : 'pulse',
+            style: bladeIndex % 2 === 0 ? 'audio_flicker' : 'pulse',
             params: {
               base_color: bladeIndex % 2 === 0 ? 'Blue' : 'Cyan',
               alt_color: bladeIndex % 2 === 0 ? 'Cyan' : 'White',
@@ -48,7 +48,7 @@ const makeDoc = (numBlades = 2): ConfigDocument => ({
           font: 'Vader',
           track: 'tracks/second.wav',
           blades: Array.from({ length: numBlades }, (_, bladeIndex) => ({
-            style: bladeIndex % 2 === 0 ? 'unstable' : 'standard',
+            style: bladeIndex % 2 === 0 ? 'unstable' : 'audio_flicker',
             params: {
               base_color: bladeIndex % 2 === 0 ? 'Green' : 'White',
               alt_color: bladeIndex % 2 === 0 ? 'White' : 'Blue',
@@ -80,7 +80,7 @@ const makeDoc = (numBlades = 2): ConfigDocument => ({
           font: 'Kestis',
           track: 'tracks/out.wav',
           blades: Array.from({ length: numBlades }, () => ({
-            style: 'standard',
+            style: 'audio_flicker',
             params: { base_color: 'Blue', alt_color: 'Cyan' },
           })),
         },
@@ -128,7 +128,8 @@ const createDataTransfer = (): DataTransfer => {
   } as unknown as DataTransfer;
 };
 
-describe('preset UI integration', () => {
+import { SUPPORTED_SCHEMA_ARG_SYMBOLS } from '../config/styleArgSymbols';
+describe('preset UI integration', () => { 
   beforeEach(() => {
     seedStore(3);
   });
@@ -267,14 +268,7 @@ describe('preset UI integration', () => {
     expect(screen.queryByRole('option', { name: 'Standard' })).toBeNull();
   });
 
-  it('shows style-appropriate tuning controls for the selected blade style', () => {
-    render(<PresetEditor />);
-
-    expect(screen.queryByText('Rainbow Speed')).toBeNull();
-    expect(screen.queryByText('Strobe Duration')).toBeNull();
-    expect(screen.getByText('Flicker Speed')).toBeTruthy();
-  });
-
+  
   it('renders off-state controls and updates selected blade off-state params', () => {
     render(<PresetEditor />);
 

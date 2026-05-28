@@ -67,8 +67,9 @@ struct MockDynamicMixer {
   }
   int32_t last_sum() const { 
     // Combine a 1 Hz pulse with high-frequency noise to accurately simulate chaotic audio hum
-    float base = 12000.0f + 2000.0f * sinf(micros_ * 0.000002f * 2.0f * M_PI);
-    float noise = (xorshift32() % 2000) - 1000.0f;
+    // NoisySoundLevelCompat uses (last_sum << 3) clamped to 32768, so last_sum needs to be in 0-4096 range
+    float base = 2048.0f + 1000.0f * sinf(micros_ * 0.000002f * 2.0f * M_PI);
+    float noise = (xorshift32() % 1000) - 500.0f;
     return (int32_t)(base + noise);
   }
   int32_t audio_volume() const { return 100000; }

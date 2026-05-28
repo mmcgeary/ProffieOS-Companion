@@ -56,7 +56,7 @@ describe('styleStringBuilder', () => {
 
   it('stab_color at arg10 and ignition_time at arg12 coexist without collision', () => {
     const style = buildStyleString({
-      style: 'standard',
+      style: 'audio_flicker',
       params: {
         base_color: 'Blue',
         alt_color: 'Cyan',

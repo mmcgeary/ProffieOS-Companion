@@ -48,7 +48,7 @@ export const useProffieEngine = () => {
     const init = async () => {
       try {
         console.log('Fetching WASM binary...');
-        const response = await fetch('/engine/style_engine.wasm');
+        const response = await fetch(`/engine/style_engine.wasm?v=${Date.now()}`);
         if (!response.ok) throw new Error(`Failed to fetch WASM: ${response.status} ${response.statusText}`);
         const wasmBinary = await response.arrayBuffer();
         console.log('WASM binary fetched, size:', wasmBinary.byteLength);
