@@ -1,4 +1,5 @@
 export const ARG_INDEX_BY_SYMBOL: Record<string, number> = {
+  // Core args (1–38) — match firmware ini_style_arg_ids.h kBaseColorArg..kRetractionOption2Arg
   BASE_COLOR_ARG: 1,
   ALT_COLOR_ARG: 2,
   STYLE_OPTION_ARG: 3,
@@ -37,6 +38,34 @@ export const ARG_INDEX_BY_SYMBOL: Record<string, number> = {
   STYLE_OPTION3_ARG: 36,
   IGNITION_OPTION2_ARG: 37,
   RETRACTION_OPTION2_ARG: 38,
+  // Companion tuning args (39–52) — shared generic tuning params
+  FLICKER_DEPTH_ARG: 39,
+  FLICKER_SPEED_ARG: 40,
+  STRIPE_WIDTH_ARG: 41,
+  STRIPE_SPEED_ARG: 42,
+  MOTION_GAIN_ARG: 43,
+  NOISE_MIX_ARG: 44,
+  BASE_CONTRAST_ARG: 45,
+  DRIFT_RATE_ARG: 46,
+  WARM_SHIFT_ARG: 47,
+  JITTER_AMOUNT_ARG: 48,
+  SPARK_MIX_ARG: 49,
+  HEAT_RAND_ARG: 50,
+  FIRE_COOLING_ARG: 51,
+  RAINBOW_SPEED_ARG: 52,
+  // Extended style-specific args (53–64) — IniCoreWrapper and specialized styles
+  LOCKUP_FADE_ARG: 53,
+  CLASH_FADE_ARG: 54,
+  LOCKUP_SIZE_ARG: 55,
+  MELT_BASE_ARG: 56,
+  MELT_ALT_ARG: 57,
+  PULSE_SPEED_ARG: 58,
+  HUMP_WIDTH_ARG: 59,
+  CYCLE_OFF_RPM_ARG: 60,
+  CYCLE_ON_RPM_ARG: 61,
+  CYCLE_OFF_PCT_ARG: 62,
+  CYCLE_ON_PCT_ARG: 63,
+  CYCLE_FADE_ARG: 64,
 };
 
 export const SUPPORTED_SCHEMA_ARG_SYMBOLS = new Set(Object.keys(ARG_INDEX_BY_SYMBOL));

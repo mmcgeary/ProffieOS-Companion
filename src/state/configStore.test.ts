@@ -174,6 +174,7 @@ describe('configStore save lifecycle', () => {
       numBlades: 2,
       numButtons: 2,
       hasBladeDetect: true,
+      bladeLengths: [144, 130],
     });
 
     await useConfigStore.getState().loadSample();
@@ -186,6 +187,7 @@ describe('configStore save lifecycle', () => {
     expect(serialManagerMock.getHardwareProfile).toHaveBeenCalledTimes(1);
     expect(state.doc.hardwareProfile.numBlades).toBe(2);
     expect(state.doc.hardwareProfile.numButtons).toBe(2);
+    expect(state.doc.hardwareProfile.bladeLengths).toEqual([144, 130]);
     expect(state.doc.banks.blade_in.presets[0]?.blades).toHaveLength(2);
     expect(samplePresetSection?.params.blade2_style).toBe('builtin 0 2');
   });

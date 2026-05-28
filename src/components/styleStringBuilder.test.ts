@@ -91,12 +91,91 @@ describe('styleStringBuilder', () => {
     });
     const tokens = style.split(' ');
     expect(tokens[0]).toBe('hump_flicker');
-    expect(tokens[3]).toBe('77');
+    // hump_amount maps to HUMP_WIDTH_ARG (index 59) per firmware ini_style_arg_ids.h
+    expect(tokens[59]).toBe('77');
     expect(tokens[1]).toBe('65535,0,65535');
   });
 
   it('correctly maps ALT_COLOR2_ARG to index 33', async () => {
     const { ARG_INDEX_BY_SYMBOL } = await import('../config/styleArgSymbols');
     expect(ARG_INDEX_BY_SYMBOL.ALT_COLOR2_ARG).toBe(33);
+  });
+
+  it('correctly maps flicker_depth to index 39 via schema FLICKER_DEPTH_ARG', () => {
+    const blade = {
+      style: 'audio_flicker',
+      params: { base_color: 'Red', alt_color: 'White' },
+      styleParams: { flicker_depth: '12000' }
+    };
+    const styleString = buildStyleString(blade);
+    const args = styleString.split(' ');
+    expect(args[39]).toBe('12000');
+  });
+
+  it('places pulsing_stripes params at correct extended arg positions', () => {
+    const styleString = buildStyleString({
+      style: 'pulsing_stripes',
+      params: { base_color: 'Red' },
+      styleParams: { stripe_width: '200', stripe_speed: '100', pulse_rate: '50' },
+    });
+    const args = styleString.split(' ');
+    expect(args[41]).toBe('200'); // STRIPE_WIDTH_ARG
+    expect(args[42]).toBe('100'); // STRIPE_SPEED_ARG
+    expect(args[58]).toBe('50');  // PULSE_SPEED_ARG
+  });
+
+  it('places energy_blade stripe params at correct arg positions', () => {
+    const styleString = buildStyleString({
+      style: 'energy_blade',
+      params: { base_color: 'Blue' },
+      styleParams: { stripe_width: '150', stripe_speed: '75' },
+    });
+    const args = styleString.split(' ');
+    expect(args[41]).toBe('150'); // STRIPE_WIDTH_ARG
+    expect(args[42]).toBe('75');  // STRIPE_SPEED_ARG
+  });
+
+  it('places lava_blade pulse_rate at PULSE_SPEED_ARG (58)', () => {
+    const styleString = buildStyleString({
+      style: 'lava_blade',
+      params: { base_color: 'Red' },
+      styleParams: { pulse_rate: '30' },
+    });
+    const args = styleString.split(' ');
+    expect(args[58]).toBe('30'); // PULSE_SPEED_ARG
+  });
+
+  it('places IniCoreWrapper extended effect params at positions 53–57', () => {
+    const styleString = buildStyleString({
+      style: 'audio_flicker',
+      params: {
+        base_color: 'Red',
+        lockup_fade: '500',
+        clash_fade: '300',
+        lockup_size: '128',
+        melt_base: 'Red',
+        melt_alt: 'Yellow',
+      },
+      styleParams: {},
+    });
+    const args = styleString.split(' ');
+    expect(args[53]).toBe('500');           // LOCKUP_FADE_ARG
+    expect(args[54]).toBe('300');           // CLASH_FADE_ARG
+    expect(args[55]).toBe('128');           // LOCKUP_SIZE_ARG
+    expect(args[56]).toBe('65535,0,0');     // MELT_BASE_ARG (Red as R,G,B)
+    expect(args[57]).toBe('65535,65535,0'); // MELT_ALT_ARG (Yellow as R,G,B)
+  });
+
+  it('maps extended arg symbols correctly in ARG_INDEX_BY_SYMBOL', async () => {
+    const { ARG_INDEX_BY_SYMBOL } = await import('../config/styleArgSymbols');
+    expect(ARG_INDEX_BY_SYMBOL.LOCKUP_FADE_ARG).toBe(53);
+    expect(ARG_INDEX_BY_SYMBOL.CLASH_FADE_ARG).toBe(54);
+    expect(ARG_INDEX_BY_SYMBOL.LOCKUP_SIZE_ARG).toBe(55);
+    expect(ARG_INDEX_BY_SYMBOL.MELT_BASE_ARG).toBe(56);
+    expect(ARG_INDEX_BY_SYMBOL.MELT_ALT_ARG).toBe(57);
+    expect(ARG_INDEX_BY_SYMBOL.PULSE_SPEED_ARG).toBe(58);
+    expect(ARG_INDEX_BY_SYMBOL.HUMP_WIDTH_ARG).toBe(59);
+    expect(ARG_INDEX_BY_SYMBOL.STRIPE_WIDTH_ARG).toBe(41);
+    expect(ARG_INDEX_BY_SYMBOL.STRIPE_SPEED_ARG).toBe(42);
   });
 });

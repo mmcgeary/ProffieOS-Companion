@@ -117,7 +117,15 @@ describe('schema-driven control partitioning', () => {
     expect(keys).toContain('base_color');
     expect(keys).toContain('alt_color');
     expect(keys).toContain('lb_color');
-    expect(keys).toContain('flicker_mix');
+    // Renamed from flicker_mix → flicker_depth to match FLICKER_DEPTH_ARG (39)
+    expect(keys).toContain('flicker_depth');
+    expect(keys).toContain('flicker_speed');
+    // IniCoreWrapper extended effects
+    expect(keys).toContain('lockup_fade');
+    expect(keys).toContain('clash_fade');
+    expect(keys).toContain('lockup_size');
+    expect(keys).toContain('melt_base');
+    expect(keys).toContain('melt_alt');
     // Unmapped symbols are intentionally filtered from schema controls.
     expect(keys).not.toContain('alt_color2');
   });

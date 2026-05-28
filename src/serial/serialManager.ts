@@ -536,6 +536,7 @@ export class SerialManager {
       numBlades: parsed.numBlades,
       numButtons: parsed.numButtons,
       hasBladeDetect: parsed.hasBladeDetect,
+      bladeLengths: parsed.bladeLengths.length > 0 ? parsed.bladeLengths : undefined,
     };
   }
 

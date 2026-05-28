@@ -294,6 +294,27 @@ describe('SerialManager', () => {
     expect((manager as unknown as SerialManagerInternals).onLineReceived).toBeNull();
   });
 
+  it('includes bladeLengths in returned hardware profile', async () => {
+    const manager = new SerialManager();
+    const writeMock = vi.fn().mockResolvedValue(undefined);
+    attachWriter(manager, writeMock);
+
+    const profilePromise = manager.getHardwareProfile();
+
+    emitLine(manager, 'num_blades=2');
+    emitLine(manager, 'num_buttons=2');
+    emitLine(manager, 'blade1_length=144');
+    emitLine(manager, 'blade2_length=130');
+    await vi.advanceTimersByTimeAsync(250);
+
+    await expect(profilePromise).resolves.toEqual({
+      numBlades: 2,
+      numButtons: 2,
+      bladeLengths: [144, 130],
+    });
+    expect((manager as unknown as SerialManagerInternals).onLineReceived).toBeNull();
+  });
+
   it('parses firmware HW_PROFILE contract lines emitted as a single response', async () => {
     const manager = new SerialManager();
     const writeMock = vi.fn().mockResolvedValue(undefined);

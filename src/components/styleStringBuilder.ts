@@ -122,6 +122,8 @@ const COLOR_ARG_SYMBOLS = new Set([
   'SWING_COLOR_ARG', 'EMITTER_COLOR_ARG', 'PREON_COLOR_ARG',
   'IGNITION_COLOR_ARG', 'RETRACTION_COLOR_ARG', 'POSTOFF_COLOR_ARG',
   'OFF_COLOR_ARG', 'ALT_COLOR2_ARG', 'ALT_COLOR3_ARG',
+  // Extended melt colors (IniCoreWrapper — RgbArg<MELT_BASE_ARG> / RgbArg<MELT_ALT_ARG>)
+  'MELT_BASE_ARG', 'MELT_ALT_ARG',
 ]);
 
 const isColorSymbol = (argSymbol: string): boolean => COLOR_ARG_SYMBOLS.has(argSymbol);

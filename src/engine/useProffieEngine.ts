@@ -4,7 +4,8 @@ type RenderStyle = (styleString: string, timeMs: number, numLeds: number) => num
 
 interface ProffieEngineInstance {
   HEAPU8?: Uint8Array;
-  cwrap: (name: string, returnType: string | null, argTypes: readonly string[]) => any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  cwrap: (name: string, returnType: string | null, argTypes: readonly string[]) => (...args: any[]) => any;
 }
 
 interface CreateProffieEngineOptions {
