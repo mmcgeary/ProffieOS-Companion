@@ -16,6 +16,67 @@ const CORE_PRESET_KEYS = new Set(['name', 'font', 'track']);
 const BLADE_PARAM_KEY = /^blade(\d+)_(.+)$/i;
 const STYLE_PARAM_PREFIX = 'param.';
 const NUM_BUTTON_KEYS = new Set(['num_buttons', 'numbuttons']);
+const SLOT_KEY = /^slot_(\d+)$/i;
+const TWO_BUTTON_SLOT_IDS = new Set([5, 6, 7, 8, 9, 10, 11, 12, 27, 28]);
+const THREE_BUTTON_SLOT_IDS = new Set([13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 29]);
+const DEFAULT_BLADE_STYLE = 'audio_flicker';
+const CORE_STYLE_PARAM_KEYS = new Set([
+  'base_color',
+  'alt_color',
+  'blast_color',
+  'clash_color',
+  'lockup_color',
+  'drag_color',
+  'lb_color',
+  'stab_color',
+  'ignition_time',
+  'retraction_time',
+  'off_color',
+]);
+
+const STYLE_TO_BUILTIN: Record<string, string> = {
+  audio_flicker: '0',
+  hump_flicker: '1',
+  pulsing_stripes: '2',
+  energy: '3',
+  fire_unstable: '4',
+  plasma_blade: '5',
+  rainbow_blade: '6',
+  energy_blade: '7',
+  lava_blade: '8',
+  sparkle_blade: '9',
+  fire_blade: '10',
+};
+
+const BUILTIN_TO_STYLE: Record<string, string> = {
+  '0': 'audio_flicker',
+  '1': 'hump_flicker',
+  '2': 'pulsing_stripes',
+  '3': 'energy',
+  '4': 'fire_unstable',
+  '5': 'plasma_blade',
+  '6': 'rainbow_blade',
+  '7': 'energy_blade',
+  '8': 'lava_blade',
+  '9': 'sparkle_blade',
+  '10': 'fire_blade',
+};
+
+function normalizeBladeStyleName(styleName: string | undefined): string {
+  let normalized = (styleName ?? '').trim().toLowerCase();
+  
+  if (normalized.startsWith('builtin')) {
+    const parts = normalized.split(' ');
+    if (parts.length >= 2 && BUILTIN_TO_STYLE[parts[1]]) {
+      normalized = BUILTIN_TO_STYLE[parts[1]];
+    }
+  }
+
+  if (!normalized || normalized === 'standard') {
+    return DEFAULT_BLADE_STYLE;
+  }
+  return normalized;
+}
 
 export interface NormalizeConfigInput {
   bladeInIni: string;
@@ -109,6 +170,40 @@ function inferNumButtonsFromSections(bladeInSections: IniSection[], bladeOutSect
   return inferredNumButtons;
 }
 
+function inferNumButtonsFromButtonSlots(sections: IniSection[]): number {
+  let inferredNumButtons = 1;
+
+  sections.forEach((section) => {
+    const sectionName = section.name.toLowerCase();
+    if (sectionName !== 'buttons_on' && sectionName !== 'buttons_off') {
+      return;
+    }
+
+    Object.keys(section.params).forEach((rawKey) => {
+      const match = rawKey.toLowerCase().match(SLOT_KEY);
+      if (!match) {
+        return;
+      }
+
+      const slotId = Number.parseInt(match[1], 10);
+      if (Number.isNaN(slotId)) {
+        return;
+      }
+
+      if (THREE_BUTTON_SLOT_IDS.has(slotId)) {
+        inferredNumButtons = Math.max(inferredNumButtons, 3);
+        return;
+      }
+
+      if (TWO_BUTTON_SLOT_IDS.has(slotId)) {
+        inferredNumButtons = Math.max(inferredNumButtons, 2);
+      }
+    });
+  });
+
+  return inferredNumButtons;
+}
+
 function normalizePreset(section: IniSection, numBlades: number): PresetConfig {
   const legacyBladeParams: Record<string, string> = {};
   const legacyStyleParams: Record<string, string> = {};
@@ -158,11 +253,20 @@ function normalizePreset(section: IniSection, numBlades: number): PresetConfig {
       ...(perBladeStyleParams.get(bladeIndex) ?? {}),
     };
 
-    const style = mergedParams.style ?? 'standard';
+    const style = normalizeBladeStyleName(mergedParams.style);
     const bladeParams = { ...mergedParams };
     delete bladeParams.style;
+    const bladeStyleParams: Record<string, string> = {};
+    Object.entries(mergedStyleParams).forEach(([key, value]) => {
+      const normalizedKey = key.trim().toLowerCase();
+      if (CORE_STYLE_PARAM_KEYS.has(normalizedKey)) {
+        bladeParams[normalizedKey] = value;
+        return;
+      }
+      bladeStyleParams[key] = value;
+    });
 
-    blades.push({ style, params: bladeParams, styleParams: mergedStyleParams });
+    blades.push({ style, params: bladeParams, styleParams: bladeStyleParams });
   }
 
   return {
@@ -182,8 +286,8 @@ function normalizeBank(sections: IniSection[], numBlades: number): { presets: Pr
 
 function normalizeBladeList(preset: PresetConfig, numBlades: number): BladeStyleConfig[] {
   const normalized: BladeStyleConfig[] = [];
-  const totalBlades = numBlades;
-  const fallbackBlade = preset.blades[0] ?? { style: 'standard', params: {}, styleParams: {} };
+  const totalBlades = Math.max(1, numBlades, preset.blades.length);
+  const fallbackBlade = preset.blades[0] ?? { style: DEFAULT_BLADE_STYLE, params: {}, styleParams: {} };
 
   for (let bladeIndex = 0; bladeIndex < totalBlades; bladeIndex += 1) {
     const sourceBlade = preset.blades[bladeIndex] ?? fallbackBlade;
@@ -198,12 +302,14 @@ function normalizeBladeList(preset: PresetConfig, numBlades: number): BladeStyle
 }
 
 function buildBankIni(doc: ConfigDocument, bank: ConfigBank): string {
+  const sharedNumButtons = parsePositiveIntegerValue(doc.shared.global.num_buttons ?? '') ?? 1;
+  const effectiveNumButtons = Math.max(sharedNumButtons, doc.hardwareProfile.numButtons);
   const sections: IniSection[] = [
     {
       name: 'global',
       params: {
         ...doc.shared.global,
-        num_buttons: String(doc.hardwareProfile.numButtons),
+        num_buttons: String(effectiveNumButtons),
       },
     },
     {
@@ -226,11 +332,17 @@ function buildBankIni(doc: ConfigDocument, bank: ConfigBank): string {
     const blades = normalizeBladeList(preset, doc.hardwareProfile.numBlades);
     blades.forEach((blade, bladeIndex) => {
       const bladeOrdinal = bladeIndex + 1;
-      params[`blade${bladeOrdinal}_style`] = blade.style;
+      const builtinIndex = STYLE_TO_BUILTIN[blade.style];
+      params[`blade${bladeOrdinal}_style`] = builtinIndex ? `builtin ${builtinIndex} ${bladeOrdinal}` : blade.style;
       Object.entries(blade.params).forEach(([key, value]) => {
         params[`blade${bladeOrdinal}_${key}`] = value;
       });
       Object.entries(blade.styleParams ?? {}).forEach(([key, value]) => {
+        const normalizedKey = key.trim().toLowerCase();
+        if (CORE_STYLE_PARAM_KEYS.has(normalizedKey)) {
+          params[`blade${bladeOrdinal}_${normalizedKey}`] = value;
+          return;
+        }
         params[`blade${bladeOrdinal}_${STYLE_PARAM_PREFIX}${key}`] = value;
       });
     });
@@ -259,7 +371,13 @@ export function normalizeConfig({
     inferNumBladesFromSections(bladeInSections),
     inferNumBladesFromSections(bladeOutSections),
   );
-  const inferredNumButtons = inferNumButtonsFromSections(bladeInSections, bladeOutSections) ?? 1;
+  const inferredNumButtonsFromGlobals =
+    inferNumButtonsFromSections(bladeInSections, bladeOutSections) ?? 1;
+  const inferredNumButtonsFromSlots = Math.max(
+    inferNumButtonsFromButtonSlots(bladeInSections),
+    inferNumButtonsFromButtonSlots(bladeOutSections),
+  );
+  const inferredNumButtons = Math.max(inferredNumButtonsFromGlobals, inferredNumButtonsFromSlots);
   const effectiveNumBlades = preferHardwareBladeCount
     ? hwProfile.numBlades
     : Math.max(hwProfile.numBlades, inferredNumBlades);

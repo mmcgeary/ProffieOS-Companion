@@ -26,6 +26,8 @@ const decodedWrites = (writeMock: ReturnType<typeof vi.fn>) => {
 const attachWriter = (manager: SerialManager, writeMock: ReturnType<typeof vi.fn>) => {
   (manager as unknown as SerialManagerInternals).writer = {
     write: writeMock,
+    abort: vi.fn().mockResolvedValue(undefined),
+    releaseLock: vi.fn(),
   } as unknown as WritableStreamDefaultWriter<Uint8Array>;
 };
 
@@ -473,11 +475,25 @@ describe('SerialManager', () => {
 
     const fontsPromise = manager.listFonts();
 
-    expect(decodedWrites(writeMock)).toEqual(['list_fonts\n']);
+    // First command is list_fonts
+    await vi.advanceTimersByTimeAsync(50);
+    expect(decodedWrites(writeMock)).toContain('list_fonts\n');
 
     emitLine(manager, 'Kestis');
     emitLine(manager, 'Vader');
-    await vi.advanceTimersByTimeAsync(250);
+    await vi.advanceTimersByTimeAsync(250); // timeout for list_fonts
+
+    // Next command is dir Kestis
+    await vi.advanceTimersByTimeAsync(50);
+    expect(decodedWrites(writeMock)).toContain('dir Kestis\n');
+    emitLine(manager, 'boot.wav 1234');
+    await vi.advanceTimersByTimeAsync(250); // timeout for dir Kestis
+
+    // Next command is dir Vader
+    await vi.advanceTimersByTimeAsync(50);
+    expect(decodedWrites(writeMock)).toContain('dir Vader\n');
+    emitLine(manager, 'boot.wav 5678');
+    await vi.advanceTimersByTimeAsync(250); // timeout for dir Vader
 
     await expect(fontsPromise).resolves.toEqual(['Kestis', 'Vader']);
     expect((manager as unknown as SerialManagerInternals).onLineReceived).toBeNull();

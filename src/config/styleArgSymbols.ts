@@ -1,10 +1,3 @@
-/**
- * Companion-side arg symbol mapping aligned to the current INI style-string
- * contract (legacy arg slots consumed by firmware parser templates).
- *
- * Symbols not listed here are not currently representable in the preview
- * style-string and should not be surfaced as editable schema controls.
- */
 export const ARG_INDEX_BY_SYMBOL: Record<string, number> = {
   BASE_COLOR_ARG: 1,
   ALT_COLOR_ARG: 2,
@@ -21,6 +14,29 @@ export const ARG_INDEX_BY_SYMBOL: Record<string, number> = {
   RETRACTION_TIME_ARG: 13,
   OFF_COLOR_ARG: 14,
   OFF_OPTION_ARG: 15,
+  ALT_COLOR2_ARG: 31,
+  ALT_COLOR3_ARG: 32,
+  STYLE_OPTION2_ARG: 33,
+  STYLE_OPTION3_ARG: 34,
+  IGNITION_OPTION2_ARG: 35,
+  RETRACTION_OPTION2_ARG: 36,
+  RETRACTION_OPTION_ARG: 37,
+  SWING_OPTION_ARG: 38,
+  IGNITION_DELAY_ARG: 39,
+  RETRACTION_DELAY_ARG: 40,
+  LOCKUP_POSITION_ARG: 41,
+  DRAG_SIZE_ARG: 42,
+  MELT_SIZE_ARG: 43,
+  SWING_COLOR_ARG: 44,
+  EMITTER_SIZE_ARG: 45,
+  PREON_COLOR_ARG: 46,
+  PREON_OPTION_ARG: 47,
+  PREON_SIZE_ARG: 48,
+  RETRACTION_COLOR_ARG: 49,
+  RETRACTION_COOL_DOWN_ARG: 50,
+  POSTOFF_COLOR_ARG: 51,
+  IGNITION_COLOR_ARG: 52,
+  IGNITION_POWER_UP_ARG: 53,
 };
 
 export const SUPPORTED_SCHEMA_ARG_SYMBOLS = new Set(Object.keys(ARG_INDEX_BY_SYMBOL));

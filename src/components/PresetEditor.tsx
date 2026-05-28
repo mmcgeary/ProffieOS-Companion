@@ -5,7 +5,7 @@ import { serialManager } from '../serial/serialManager';
 import { useConfigStore } from '../state/configStore';
 import { BladeCanvas } from './BladeCanvas';
 import { PresetList } from './PresetList';
-import { buildStyleString } from './styleStringBuilder';
+import { buildStyleString, NAMED_COLORS } from './styleStringBuilder';
 import {
   OFF_MODE_OPTIONS,
   getOffStateValue,
@@ -15,22 +15,85 @@ import {
   type StyleTuningKey,
 } from './styleTuningConfig';
 
+const ColorInput = ({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (val: string) => void;
+}) => {
+  const mode = value in NAMED_COLORS ? value : 'RGB';
+
+  return (
+    <div>
+      <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 500 }}>
+        {label}
+      </label>
+      <select
+        aria-label={label}
+        value={mode}
+        onChange={(e) => {
+          const newMode = e.target.value;
+          if (newMode !== 'RGB') {
+            onChange(newMode);
+          } else {
+            onChange(NAMED_COLORS[mode] || '255,255,255');
+          }
+        }}
+        style={{
+          width: '100%',
+          padding: '10px',
+          borderRadius: '6px',
+          border: '1px solid var(--border)',
+          background: 'var(--bg)',
+          color: 'var(--text-h)',
+          marginBottom: mode === 'RGB' ? '8px' : '0',
+        }}
+      >
+        {Object.keys(NAMED_COLORS).map(color => (
+          <option key={color} value={color}>{color}</option>
+        ))}
+        <option value="RGB">RGB</option>
+      </select>
+      {mode === 'RGB' && (
+        <input
+          aria-label={`${label} Custom RGB`}
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="R,G,B (0-65535)"
+          style={{
+            width: '100%',
+            padding: '10px',
+            borderRadius: '6px',
+            border: '1px solid var(--border)',
+            background: 'var(--bg)',
+            color: 'var(--text-h)',
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
 const BUILTIN_STYLES = [
-  { value: 'standard', label: 'Standard (Pulsing)' },
-  { value: 'humpflicker', label: 'Hump Flicker' },
-  { value: 'unstable', label: 'Unstable (BrownNoise)' },
-  { value: 'fire', label: 'Fire Blade' },
-  { value: 'rainbow', label: 'Rainbow' },
-  { value: 'strobe', label: 'Stroboscope' },
-  { value: 'pulse', label: 'Pulse' },
-  { value: 'rotoscope', label: 'Rotoscope' },
-  { value: 'ghostly', label: 'Ghostly' },
-  { value: 'lightning', label: 'Lightning' },
-  { value: 'darksaber', label: 'Darksaber' },
-  { value: 'kylo', label: 'Kylo Ren' },
-  { value: 'prequels', label: 'Prequels (Audio Flicker)' },
-  { value: 'sequels', label: 'Sequels (Audio Flicker)' },
-  { value: 'ancient', label: 'Ancient' },
+  { value: 'audio_flicker', label: 'Audio Flicker' },
+  { value: 'hump_flicker', label: 'Hump Flicker' },
+  { value: 'pulsing_stripes', label: 'Pulsing Stripes' },
+  { value: 'energy', label: 'Energy' },
+  { value: 'fire_unstable', label: 'Fire Unstable' },
+  { value: 'plasma_blade', label: 'Plasma Blade' },
+  { value: 'rainbow_blade', label: 'Rainbow Blade' },
+  { value: 'energy_blade', label: 'Energy Blade' },
+  { value: 'lava_blade', label: 'Lava Blade' },
+  { value: 'sparkle_blade', label: 'Sparkle Blade' },
+  { value: 'fire_blade', label: 'Fire Blade' },
+  { value: 'pulse_accent', label: 'Pulse Accent' },
+  { value: 'blink_accent', label: 'Blink Accent' },
+  { value: 'random_blink_accent', label: 'Random Blink Accent' },
+  { value: 'color_cycle_accent', label: 'Color Cycle Accent' },
 ];
 
 const COLOR_FIELDS: Array<{ key: string; label: string }> = [
@@ -39,7 +102,47 @@ const COLOR_FIELDS: Array<{ key: string; label: string }> = [
   { key: 'blast_color', label: 'Blast Color' },
   { key: 'clash_color', label: 'Clash Color' },
   { key: 'lockup_color', label: 'Lockup Color' },
+  { key: 'drag_color', label: 'Drag Color' },
+  { key: 'lb_color', label: 'Lightning Block Color' },
+  { key: 'stab_color', label: 'Stab Color' },
 ];
+
+const DEFAULT_PARAM_VALUES: Record<string, string> = {
+  base_color: 'Red',
+  alt_color: 'White',
+  blast_color: 'White',
+  clash_color: 'White',
+  lockup_color: 'White',
+  drag_color: 'White',
+  lb_color: 'White',
+  stab_color: 'White',
+  off_color: 'Black',
+  ignition_time: '300',
+  retraction_time: '200',
+  flicker_mix: '12000',
+  hump_amount: '12000',
+  stripe_width: '5000',
+  pulse_rate: '1200',
+  spark_mix: '5000',
+  fire_mix: '5000',
+  blink_ms: '50',
+  blink_rate: '50',
+  segment_size: '500'
+};
+
+const DIRECT_SCHEMA_PARAM_KEYS = new Set([
+  'base_color',
+  'alt_color',
+  'blast_color',
+  'clash_color',
+  'lockup_color',
+  'drag_color',
+  'lb_color',
+  'stab_color',
+  'ignition_time',
+  'retraction_time',
+  'off_color',
+]);
 
 const SCHEMA_CONTROL_INPUT_STYLE: React.CSSProperties = {
   width: '100%',
@@ -65,7 +168,7 @@ const createLegacyPreset = (
     const styleKey = `blade${bladeOrdinal}_style`;
     const prefix = `blade${bladeOrdinal}_`;
     const bladeParams: Record<string, string> = {};
-    let style = params[styleKey] || params.style || 'standard';
+    let style = params[styleKey] || params.style || 'audio_flicker';
 
     Object.entries(params).forEach(([key, value]) => {
       const lowerKey = key.toLowerCase();
@@ -201,27 +304,22 @@ export const PresetEditor: React.FC = () => {
 
   const fontOptions = React.useMemo(() => {
     const values = new Set<string>();
-    presets.forEach((preset) => {
-      if (preset.font) values.add(preset.font);
-    });
     sdFontOptions.forEach((font) => {
       if (font) values.add(font);
     });
-    if (activePreset?.font) values.add(activePreset.font);
-    return Array.from(values);
-  }, [activePreset, presets, sdFontOptions]);
+    return Array.from(values).sort();
+  }, [sdFontOptions]);
 
   const trackOptions = React.useMemo(() => {
     if (!activePreset?.font?.trim()) {
       return [];
     }
     const values = new Set<string>();
-    if (activePreset?.track) values.add(activePreset.track);
     sdTrackOptions.forEach((track) => {
       if (track) values.add(track);
     });
-    return Array.from(values);
-  }, [activePreset, sdTrackOptions]);
+    return Array.from(values).sort();
+  }, [activePreset?.font, sdTrackOptions]);
 
   if (sections.length === 0) {
     return (
@@ -253,7 +351,7 @@ export const PresetEditor: React.FC = () => {
 
   const selectedBlade =
     activePreset.blades[selectedBladeIndex] ||
-    activePreset.blades[0] || { style: 'standard', params: {}, styleParams: {} };
+    activePreset.blades[0] || { style: 'audio_flicker', params: {}, styleParams: {} };
 
   const handlePresetFieldChange = (key: 'name' | 'font' | 'track', value: string) => {
     if (activeSectionIndex < 0) return;
@@ -264,10 +362,23 @@ export const PresetEditor: React.FC = () => {
     updateBladeParam(activePresetIndex, selectedBladeIndex, key, value);
   };
 
-  const getSchemaControlValue = (key: string): string =>
-    selectedBlade.styleParams?.[key] ?? selectedBlade.params[key] ?? '';
+  const getSchemaControlValue = (key: string): string => {
+    const normalizedKey = key.trim().toLowerCase();
+    let val: string | undefined;
+    if (DIRECT_SCHEMA_PARAM_KEYS.has(normalizedKey)) {
+      val = selectedBlade.params[normalizedKey] ?? selectedBlade.styleParams?.[normalizedKey];
+    } else {
+      val = selectedBlade.styleParams?.[key] ?? selectedBlade.params[key];
+    }
+    return val ?? DEFAULT_PARAM_VALUES[normalizedKey] ?? '';
+  };
 
   const handleSchemaControlChange = (key: string, value: string): void => {
+    const normalizedKey = key.trim().toLowerCase();
+    if (DIRECT_SCHEMA_PARAM_KEYS.has(normalizedKey)) {
+      handleBladeFieldChange(normalizedKey, value);
+      return;
+    }
     handleBladeFieldChange(`param.${key}`, value);
   };
 
@@ -280,6 +391,8 @@ export const PresetEditor: React.FC = () => {
   }
   const basicControls = controlGroups.basic;
   const advancedControls = controlGroups.advanced;
+  const schemaControlKeys = new Set(schemaControls.map((control) => control.key));
+  const legacyColorFields = COLOR_FIELDS.filter((field) => !schemaControlKeys.has(field.key));
 
   return (
     <div
@@ -354,19 +467,6 @@ export const PresetEditor: React.FC = () => {
                 {activePreset.name || 'Unnamed Preset'}
               </h2>
             </div>
-            <span
-              style={{
-                fontSize: '12px',
-                color: 'var(--text)',
-                fontWeight: 500,
-                background: 'var(--bg)',
-                padding: '4px 10px',
-                borderRadius: '20px',
-                border: '1px solid var(--border)',
-              }}
-            >
-              PIXEL-PERFECT RENDER
-            </span>
           </div>
           <BladeCanvas styleString={styleString} numLeds={144} />
         </div>
@@ -419,6 +519,9 @@ export const PresetEditor: React.FC = () => {
                   }}
                 >
                   {fontOptions.length === 0 && <option value="">No SD fonts found</option>}
+                  {activePreset.font && !fontOptions.includes(activePreset.font) && (
+                    <option value={activePreset.font}>{activePreset.font} (Not on SD)</option>
+                  )}
                   {fontOptions.map((font) => (
                     <option key={font} value={font}>
                       {font}
@@ -440,7 +543,10 @@ export const PresetEditor: React.FC = () => {
                     color: 'var(--text-h)',
                   }}
                 >
-                  {trackOptions.length === 0 && <option value="">No SD tracks found</option>}
+                  {trackOptions.length === 0 && <option value="">No tracks found in font</option>}
+                  {activePreset.track && !trackOptions.includes(activePreset.track) && (
+                    <option value={activePreset.track}>{activePreset.track} (Not on SD)</option>
+                  )}
                   {trackOptions.map((track) => (
                     <option key={track} value={track}>
                       {track}
@@ -494,7 +600,7 @@ export const PresetEditor: React.FC = () => {
               <div style={{ gridColumn: '1 / -1' }}>
                 <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 500 }}>Base Logic</label>
                 <select
-                  value={selectedBlade.style || 'standard'}
+                  value={selectedBlade.style || 'audio_flicker'}
                   onChange={(event) => handleBladeFieldChange('style', event.target.value)}
                   style={{
                     width: '100%',
@@ -513,25 +619,13 @@ export const PresetEditor: React.FC = () => {
                 </select>
               </div>
 
-              {COLOR_FIELDS.map((field) => (
-                <div key={field.key}>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 500 }}>
-                    {field.label}
-                  </label>
-                  <input
-                    type="text"
-                    value={selectedBlade.params[field.key] || ''}
-                    onChange={(event) => handleBladeFieldChange(field.key, event.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      borderRadius: '6px',
-                      border: '1px solid var(--border)',
-                      background: 'var(--bg)',
-                      color: 'var(--text-h)',
-                    }}
-                  />
-                </div>
+              {legacyColorFields.map((field) => (
+                <ColorInput
+                  key={field.key}
+                  label={field.label}
+                  value={selectedBlade.params[field.key] ?? DEFAULT_PARAM_VALUES[field.key] ?? ''}
+                  onChange={(val) => handleBladeFieldChange(field.key, val)}
+                />
               ))}
 
               {basicControls.length > 0 && (
@@ -541,17 +635,27 @@ export const PresetEditor: React.FC = () => {
                   </h4>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                     {basicControls.map((ctrl) => (
-                      <div key={ctrl.key}>
-                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 500 }}>
-                          {ctrl.label}
-                        </label>
-                        <input
-                          type="text"
-                          value={getSchemaControlValue(ctrl.key)}
-                          onChange={(event) => handleSchemaControlChange(ctrl.key, event.target.value)}
-                          style={SCHEMA_CONTROL_INPUT_STYLE}
-                        />
-                      </div>
+                      <React.Fragment key={ctrl.key}>
+                        {ctrl.key.endsWith('_color') ? (
+                          <ColorInput
+                            label={ctrl.label}
+                            value={getSchemaControlValue(ctrl.key)}
+                            onChange={(val) => handleSchemaControlChange(ctrl.key, val)}
+                          />
+                        ) : (
+                          <div>
+                            <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 500 }}>
+                              {ctrl.label}
+                            </label>
+                            <input
+                              type="text"
+                              value={getSchemaControlValue(ctrl.key)}
+                              onChange={(event) => handleSchemaControlChange(ctrl.key, event.target.value)}
+                              style={SCHEMA_CONTROL_INPUT_STYLE}
+                            />
+                          </div>
+                        )}
+                      </React.Fragment>
                     ))}
                   </div>
                 </div>
@@ -564,17 +668,27 @@ export const PresetEditor: React.FC = () => {
                   </summary>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>
                     {advancedControls.map((ctrl) => (
-                      <div key={ctrl.key}>
-                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 500 }}>
-                          {ctrl.label}
-                        </label>
-                        <input
-                          type="text"
-                          value={getSchemaControlValue(ctrl.key)}
-                          onChange={(event) => handleSchemaControlChange(ctrl.key, event.target.value)}
-                          style={SCHEMA_CONTROL_INPUT_STYLE}
-                        />
-                      </div>
+                      <React.Fragment key={ctrl.key}>
+                        {ctrl.key.endsWith('_color') ? (
+                          <ColorInput
+                            label={ctrl.label}
+                            value={getSchemaControlValue(ctrl.key)}
+                            onChange={(val) => handleSchemaControlChange(ctrl.key, val)}
+                          />
+                        ) : (
+                          <div>
+                            <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 500 }}>
+                              {ctrl.label}
+                            </label>
+                            <input
+                              type="text"
+                              value={getSchemaControlValue(ctrl.key)}
+                              onChange={(event) => handleSchemaControlChange(ctrl.key, event.target.value)}
+                              style={SCHEMA_CONTROL_INPUT_STYLE}
+                            />
+                          </div>
+                        )}
+                      </React.Fragment>
                     ))}
                   </div>
                 </details>
@@ -586,23 +700,11 @@ export const PresetEditor: React.FC = () => {
                 </h4>
               </div>
 
-              <div>
-                <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 500 }}>Off Color</label>
-                <input
-                  aria-label="Off Color"
-                  type="text"
-                  value={getOffStateValue(selectedBlade.params, 'off_color')}
-                  onChange={(event) => handleBladeFieldChange('off_color', event.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    borderRadius: '6px',
-                    border: '1px solid var(--border)',
-                    background: 'var(--bg)',
-                    color: 'var(--text-h)',
-                  }}
-                />
-              </div>
+              <ColorInput
+                label="Off Color"
+                value={getOffStateValue(selectedBlade.params, 'off_color')}
+                onChange={(val) => handleBladeFieldChange('off_color', val)}
+              />
 
               <div>
                 <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 500 }}>Off Mode</label>

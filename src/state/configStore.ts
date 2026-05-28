@@ -100,7 +100,7 @@ const cloneBlade = (blade: BladeStyleConfig): BladeStyleConfig => ({
 const ensureBladeAtIndex = (blades: BladeStyleConfig[], bladeIndex: number): BladeStyleConfig[] => {
   const next = blades.map(cloneBlade);
   while (next.length <= bladeIndex) {
-    next.push({ style: 'standard', params: {}, styleParams: {} });
+    next.push({ style: 'audio_flicker', params: {}, styleParams: {} });
   }
   return next;
 };
@@ -110,7 +110,7 @@ const createDefaultPreset = (numBlades: number): PresetConfig => ({
   font: 'font1',
   track: 'tracks/track1.wav',
   blades: Array.from({ length: Math.max(1, numBlades) }, () => ({
-    style: 'standard',
+    style: 'audio_flicker',
     params: {
       base_color: 'Blue',
       alt_color: 'Cyan',
@@ -306,10 +306,10 @@ gesture_flags=5
 name=Kestis
 font=Kestis
 track=
-blade1_style=standard
+blade1_style=audio_flicker
 blade1_base_color=Blue
 blade1_alt_color=Cyan
-blade2_style=standard
+blade2_style=audio_flicker
 blade2_base_color=Cyan
 blade2_alt_color=White
 
@@ -320,7 +320,7 @@ track=
 blade1_style=unstable
 blade1_base_color=Red
 blade1_alt_color=White
-blade2_style=standard
+blade2_style=audio_flicker
 blade2_base_color=Orange
 blade2_alt_color=Yellow
 
@@ -669,7 +669,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
             track: 'tracks/track1.wav',
             base_color: 'Blue',
             alt_color: 'Cyan',
-            style: 'standard',
+            style: 'audio_flicker',
           },
         },
       ];

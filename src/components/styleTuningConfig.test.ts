@@ -117,7 +117,7 @@ describe('schema-driven control partitioning', () => {
     expect(keys).toContain('base_color');
     expect(keys).toContain('alt_color');
     expect(keys).toContain('lb_color');
-    expect(keys).toContain('style_option');
+    expect(keys).toContain('flicker_mix');
     // Unmapped symbols are intentionally filtered from schema controls.
     expect(keys).not.toContain('alt_color2');
   });
@@ -163,12 +163,12 @@ describe('schema-driven control partitioning', () => {
   });
 
   it('includes style-specific params while deduplicating shared params', () => {
-    const schema = generatedStyleSchema as {
+    const schema = generatedStyleSchema as unknown as {
       styles: Array<{
         name: string;
         core: string;
         parser_name: string;
-        params: Array<{ key: string; arg_symbol: string }>;
+        params?: Array<{ key: string; arg_symbol: string }>;
       }>;
     };
     schema.styles.push({

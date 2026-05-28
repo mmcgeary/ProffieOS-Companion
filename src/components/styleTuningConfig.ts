@@ -227,7 +227,9 @@ export const getSchemaControlsForStyle = (styleName: string): SchemaControl[] =>
   }
 
   // Style-specific params declared on the style definition.
-  addParams(styleDef.params);
+  if ('params' in styleDef) {
+    addParams(styleDef.params);
+  }
 
   // Secondary shared params when the style opts in
   if ('include_secondary' in styleDef && styleDef.include_secondary) {

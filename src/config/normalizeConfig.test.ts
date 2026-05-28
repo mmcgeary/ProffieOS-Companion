@@ -99,6 +99,24 @@ blade2_style=pulse
 blade2_base_color=red
 `;
 
+const twoButtonSlotsIni = `[global]
+num_buttons=1
+volume=100
+
+[buttons_on]
+slot_5=blast
+
+[buttons_off]
+slot_5=next_preset_or_volume_down
+
+[preset1]
+name=Slot Inference
+font=Kestis
+track=
+blade1_style=standard
+blade1_base_color=blue
+`;
+
 describe('normalizeConfig', () => {
   it('builds shared + banked model from blade_in and blade_out INI inputs', () => {
     const doc = normalizeConfig({ bladeInIni, bladeOutIni, hwProfile: { numBlades: 3, numButtons: 2 } });
@@ -116,8 +134,8 @@ describe('normalizeConfig', () => {
     const rebuiltBladeInPreset = rebuiltBladeIn.find((section) => section.name.toLowerCase() === 'preset1');
     const rebuiltBladeOutPreset = rebuiltBladeOut.find((section) => section.name.toLowerCase() === 'preset1');
 
-    expect(rebuiltBladeInPreset?.params.blade1_style).toBe('standard');
-    expect(rebuiltBladeInPreset?.params.blade3_style).toBe('standard');
+    expect(rebuiltBladeInPreset?.params.blade1_style).toBe('builtin 0 1');
+    expect(rebuiltBladeInPreset?.params.blade3_style).toBe('builtin 0 3');
     expect(rebuiltBladeOutPreset?.params.blade2_style).toBe('pulse');
     expect(rebuiltBladeOutPreset?.params.blade2_base_color).toBe('red');
   });
@@ -209,5 +227,71 @@ blade1_param.custom_mix=8000
     const preset = rebuilt.find((s) => s.name.toLowerCase() === 'preset1');
     expect(preset?.params['blade1_param.flicker_depth']).toBe('15000');
     expect(preset?.params['blade1_param.custom_mix']).toBe('8000');
+  });
+
+  it('promotes shared-core color style params into blade keys and strips param namespace on serialize', () => {
+    const iniWithCoreColorStyleParams = `[global]
+num_buttons=1
+
+[preset1]
+name=ParamColorTest
+font=TestFont
+track=tracks/test.wav
+blade1_style=fire_blade
+blade1_base_color=Blue
+blade1_alt_color=Cyan
+blade1_param.base_color=Red
+blade1_param.alt_color=Orange
+blade1_param.fire_mix=22000
+`;
+
+    const doc = normalizeConfig({
+      bladeInIni: iniWithCoreColorStyleParams,
+      bladeOutIni: '',
+      hwProfile: { numBlades: 1, numButtons: 1, hasBladeDetect: false },
+    });
+
+    const blade = doc.banks.blade_in.presets[0].blades[0];
+    expect(blade.params.base_color).toBe('Red');
+    expect(blade.params.alt_color).toBe('Orange');
+    expect(blade.styleParams?.base_color).toBeUndefined();
+    expect(blade.styleParams?.alt_color).toBeUndefined();
+    expect(blade.styleParams?.fire_mix).toBe('22000');
+
+    const rebuilt = parseIni(buildBladeInIni(doc));
+    const preset = rebuilt.find((section) => section.name.toLowerCase() === 'preset1');
+    expect(preset?.params.blade1_base_color).toBe('Red');
+    expect(preset?.params.blade1_alt_color).toBe('Orange');
+    expect(preset?.params['blade1_param.base_color']).toBeUndefined();
+    expect(preset?.params['blade1_param.alt_color']).toBeUndefined();
+    expect(preset?.params['blade1_param.fire_mix']).toBe('22000');
+  });
+
+  it('infers two-button controls from configured AUX slots even when globals under-report', () => {
+    const doc = normalizeConfig({
+      bladeInIni: twoButtonSlotsIni,
+      bladeOutIni: '',
+      hwProfile: { numBlades: 1, numButtons: 1, hasBladeDetect: false },
+    });
+
+    expect(doc.hardwareProfile.numButtons).toBe(2);
+    expect(doc.shared.global.num_buttons).toBe('2');
+  });
+
+  it('does not drop blade2 keys when serializing with stale single-blade hardware profile', () => {
+    const doc = normalizeConfig({
+      bladeInIni: dualBladeCanonicalIni,
+      bladeOutIni: dualBladeCanonicalIni,
+      hwProfile: { numBlades: 1, numButtons: 1, hasBladeDetect: false },
+    });
+
+    expect(doc.hardwareProfile.numBlades).toBe(2);
+
+    doc.hardwareProfile.numBlades = 1;
+    const rebuilt = parseIni(buildBladeInIni(doc));
+    const preset = rebuilt.find((section) => section.name.toLowerCase() === 'preset1');
+
+    expect(preset?.params.blade2_style).toBe('pulse');
+    expect(preset?.params.blade2_base_color).toBe('red');
   });
 });

@@ -46,20 +46,30 @@ uint32_t micros_ = 0;
 uint32_t micros() { return micros_; }
 uint32_t millis() { return micros_ / 1000; }
 
+uint32_t xorshift32() {
+  static uint32_t state = 1;
+  uint32_t x = state;
+  x ^= x << 13;
+  x ^= x >> 17;
+  x ^= x << 5;
+  state = x;
+  return x;
+}
+
 int random(int x) { 
   if (x <= 0) return 0;
-  return (rand() & 0x7fffff) % x; 
+  return xorshift32() % x; 
 }
 
 struct MockDynamicMixer {
   int32_t last_sample() const { 
-    // High-frequency "True White Noise" for realistic AudioFlicker preview
-    // Rand on every call provides the most aggressive flicker
-    return (rand() % 8000) - 4000; 
+    return (int32_t)(4000.0f * sinf(micros_ * 0.000005f * 2.0f * M_PI));
   }
   int32_t last_sum() const { 
-    // Vary the RMS slightly to simulate speech/hum
-    return 14000 + (rand() % 4000); 
+    // Combine a 1 Hz pulse with high-frequency noise to accurately simulate chaotic audio hum
+    float base = 12000.0f + 2000.0f * sinf(micros_ * 0.000002f * 2.0f * M_PI);
+    float noise = (xorshift32() % 2000) - 1000.0f;
+    return (int32_t)(base + noise);
   }
   int32_t audio_volume() const { return 100000; }
 };
@@ -74,11 +84,11 @@ struct MockBatteryMonitor {
 MockBatteryMonitor battery_monitor;
 
 // 2. Concrete Printer
-#include "../../../ProffieOS/common/common.h"
-#include "../../../ProffieOS/common/math.h"
-#include "../../../ProffieOS/common/range.h"
-#include "../../../ProffieOS/common/sin_table.h"
-#include "../../../ProffieOS/common/stdout.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/common/common.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/common/math.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/common/range.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/common/sin_table.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/common/stdout.h"
 
 class WASMPrinter : public Print {
 public:
@@ -97,19 +107,19 @@ Print* default_output = &wasm_printer;
 Print* stdout_output = &wasm_printer;
 ConsoleHelper STDOUT;
 
-#include "../../../ProffieOS/common/monitoring.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/common/monitoring.h"
 Monitoring monitor;
 
-#include "../../../ProffieOS/common/color.h"
-#include "../../../ProffieOS/blades/blade_base.h"
-#include "../../../ProffieOS/blades/blade_wrapper.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/common/color.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/blades/blade_base.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/blades/blade_wrapper.h"
 
-#include "../../../ProffieOS/common/malloc_helper.h"
-#include "../../../ProffieOS/common/onceperblade.h"
-#include "../../../ProffieOS/common/preset.h"
-#include "../../../ProffieOS/common/blade_config.h"
-#include "../../../ProffieOS/common/command_parser.h"
-#include "../../../ProffieOS/common/arg_parser.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/common/malloc_helper.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/common/onceperblade.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/common/preset.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/common/blade_config.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/common/command_parser.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/common/arg_parser.h"
 
 // Persistent ArgParser state
 static char g_persistent_style_str[4096] = {0};
@@ -152,94 +162,94 @@ static BladeConfig dummy_config_val = { 0, &g_wasm_blade, dummy_presets_val, 1, 
 BladeConfig* current_config = &dummy_config_val;
 
 // 3. Include Styles & Functions
-#include "../../../ProffieOS/styles/blade_style.h"
-#include "../../../ProffieOS/styles/rgb.h"
-#include "../../../ProffieOS/styles/rgb_arg.h"
-#include "../../../ProffieOS/styles/charging.h"
-#include "../../../ProffieOS/styles/fire.h"
-#include "../../../ProffieOS/styles/sparkle.h"
-#include "../../../ProffieOS/styles/gradient.h"
-#include "../../../ProffieOS/styles/random_flicker.h"
-#include "../../../ProffieOS/styles/random_per_led_flicker.h"
-#include "../../../ProffieOS/styles/audio_flicker.h"
-#include "../../../ProffieOS/styles/brown_noise_flicker.h"
-#include "../../../ProffieOS/styles/hump_flicker.h"
-#include "../../../ProffieOS/styles/rainbow.h"
-#include "../../../ProffieOS/styles/color_cycle.h"
-#include "../../../ProffieOS/styles/cylon.h"
-#include "../../../ProffieOS/styles/ignition_delay.h"
-#include "../../../ProffieOS/styles/retraction_delay.h"
-#include "../../../ProffieOS/styles/pulsing.h"
-#include "../../../ProffieOS/styles/blinking.h"
-#include "../../../ProffieOS/styles/on_spark.h"
-#include "../../../ProffieOS/styles/rgb_cycle.h"
-#include "../../../ProffieOS/styles/clash.h"
-#include "../../../ProffieOS/styles/lockup.h"
-#include "../../../ProffieOS/styles/blast.h"
-#include "../../../ProffieOS/styles/strobe.h"
-#include "../../../ProffieOS/styles/inout_helper.h"
-#include "../../../ProffieOS/styles/inout_sparktip.h"
-#include "../../../ProffieOS/styles/colors.h"
-#include "../../../ProffieOS/styles/layers.h"
-#include "../../../ProffieOS/styles/mix.h"
-#include "../../../ProffieOS/styles/style_ptr.h"
-#include "../../../ProffieOS/styles/stripes.h"
-#include "../../../ProffieOS/styles/random_blink.h"
-#include "../../../ProffieOS/styles/sequence.h"
-#include "../../../ProffieOS/styles/rotate_color.h"
-#include "../../../ProffieOS/styles/transition_effect.h"
-#include "../../../ProffieOS/styles/transition_loop.h"
-#include "../../../ProffieOS/styles/color_select.h"
-#include "../../../ProffieOS/styles/remap.h"
-#include "../../../ProffieOS/styles/edit_mode.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/blade_style.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/rgb.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/rgb_arg.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/charging.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/fire.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/sparkle.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/gradient.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/random_flicker.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/random_per_led_flicker.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/audio_flicker.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/brown_noise_flicker.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/hump_flicker.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/rainbow.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/color_cycle.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/cylon.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/ignition_delay.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/retraction_delay.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/pulsing.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/blinking.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/on_spark.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/rgb_cycle.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/clash.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/lockup.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/blast.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/strobe.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/inout_helper.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/inout_sparktip.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/colors.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/layers.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/mix.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/style_ptr.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/stripes.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/random_blink.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/sequence.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/rotate_color.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/transition_effect.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/transition_loop.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/color_select.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/remap.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/edit_mode.h"
 
 // Functions
-#include "../../../ProffieOS/functions/svf.h"
-#include "../../../ProffieOS/functions/int.h"
-#include "../../../ProffieOS/functions/int_arg.h"
-#include "../../../ProffieOS/functions/sin.h"
-#include "../../../ProffieOS/functions/scale.h"
-#include "../../../ProffieOS/functions/bump.h"
-#include "../../../ProffieOS/functions/smoothstep.h"
-#include "../../../ProffieOS/functions/swing_speed.h"
-#include "../../../ProffieOS/functions/sound_level.h"
-#include "../../../ProffieOS/functions/blade_angle.h"
-#include "../../../ProffieOS/functions/variation.h"
-#include "../../../ProffieOS/functions/twist_angle.h"
-#include "../../../ProffieOS/functions/layer_functions.h"
-#include "../../../ProffieOS/functions/islessthan.h"
-#include "../../../ProffieOS/functions/mult.h"
-#include "../../../ProffieOS/functions/wavlen.h"
-#include "../../../ProffieOS/functions/effect_position.h"
-#include "../../../ProffieOS/functions/sum.h"
-#include "../../../ProffieOS/functions/ramp.h"
-#include "../../../ProffieOS/functions/center_dist.h"
-#include "../../../ProffieOS/functions/hold_peak.h"
-#include "../../../ProffieOS/functions/clash_impact.h"
-#include "../../../ProffieOS/functions/effect_increment.h"
-#include "../../../ProffieOS/functions/clamp.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/functions/svf.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/functions/int.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/functions/int_arg.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/functions/sin.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/functions/scale.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/functions/bump.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/functions/smoothstep.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/functions/swing_speed.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/functions/sound_level.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/functions/blade_angle.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/functions/variation.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/functions/twist_angle.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/functions/layer_functions.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/functions/islessthan.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/functions/mult.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/functions/wavlen.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/functions/effect_position.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/functions/sum.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/functions/ramp.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/functions/center_dist.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/functions/hold_peak.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/functions/clash_impact.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/functions/effect_increment.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/functions/clamp.h"
 
 // Transitions
-#include "../../../ProffieOS/transitions/base.h"
-#include "../../../ProffieOS/transitions/instant.h"
-#include "../../../ProffieOS/transitions/fade.h"
-#include "../../../ProffieOS/transitions/join.h"
-#include "../../../ProffieOS/transitions/concat.h"
-#include "../../../ProffieOS/transitions/delay.h"
-#include "../../../ProffieOS/transitions/wipe.h"
-#include "../../../ProffieOS/transitions/boing.h"
-#include "../../../ProffieOS/transitions/random.h"
-#include "../../../ProffieOS/transitions/colorcycle.h"
-#include "../../../ProffieOS/transitions/wave.h"
-#include "../../../ProffieOS/transitions/extend.h"
-#include "../../../ProffieOS/transitions/loop.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/transitions/base.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/transitions/instant.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/transitions/fade.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/transitions/join.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/transitions/concat.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/transitions/delay.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/transitions/wipe.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/transitions/boing.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/transitions/random.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/transitions/colorcycle.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/transitions/wave.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/transitions/extend.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/transitions/loop.h"
 
-#include "../../../ProffieOS/styles/legacy_styles.h"
-#include "../../../ProffieOS/styles/responsive_styles.h"
-#include "../../../ProffieOS/styles/ini_style_templates.h"
-#include "../../../ProffieOS/styles/style_parser.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/legacy_styles.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/responsive_styles.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/ini_style_templates.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/styles/style_parser.h"
 
-#include "../../../ProffieOS/common/saber_base.h"
+#include "../../../ProffieOS/.worktrees/construction-alpha-readiness/common/saber_base.h"
 
 // 4. Implement missing SaberBase static members
 SaberBase::LockupType SaberBase::lockup_ = SaberBase::LOCKUP_NONE;

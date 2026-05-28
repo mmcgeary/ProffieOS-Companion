@@ -82,4 +82,16 @@ describe('styleStringBuilder', () => {
     expect(tokens[0]).toBe('ini_standard');
     expect(tokens[1]).toBe('0,0,65535'); // Blue
   });
+
+  it('uses schema parser token and maps style-specific params for hump_flicker', () => {
+    const style = buildStyleString({
+      style: 'hump_flicker',
+      params: { base_color: 'Magenta', alt_color: 'White' },
+      styleParams: { hump_amount: '77' },
+    });
+    const tokens = style.split(' ');
+    expect(tokens[0]).toBe('ini_humpflicker');
+    expect(tokens[3]).toBe('77');
+    expect(tokens[1]).toBe('65535,0,65535');
+  });
 });

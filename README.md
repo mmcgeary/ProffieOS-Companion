@@ -42,9 +42,12 @@ A professional, web-based GUI for configuring ProffieOS 8.x+ post-flash settings
 
 The WebAssembly engine is located in `src/engine`. If you modify the C++ bridge:
 
-1. Ensure [Emscripten](https://emscripten.org/) is installed.
-2. Run `make` in `src/engine/`.
-3. Copy the resulting `style_engine.js` and `style_engine.wasm` to `public/engine/`.
+1. Ensure [Emscripten](https://emscripten.org/) is installed and `emcc` is on your `PATH`.
+2. Run:
+   ```bash
+   npm run build:engine
+   ```
+   This compiles `src/engine/style_bridge.cpp` and updates `public/engine/style_engine.js` + `public/engine/style_engine.wasm`.
 
 ## Style System and Schema
 

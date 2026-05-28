@@ -262,6 +262,11 @@ describe('preset UI integration', () => {
     expect(screen.getByRole('tab', { name: 'Blade 3' })).toBeTruthy();
   });
 
+  it('does not expose Standard in Base Logic style options', () => {
+    render(<PresetEditor />);
+    expect(screen.queryByRole('option', { name: 'Standard' })).toBeNull();
+  });
+
   it('shows style-appropriate tuning controls for the selected blade style', () => {
     render(<PresetEditor />);
 
@@ -314,6 +319,11 @@ describe('preset UI integration', () => {
     expect(basicSection.textContent).toContain('Base Color');
   });
 
+  it('does not duplicate schema-backed base color controls', () => {
+    render(<PresetEditor />);
+    expect(screen.getAllByText('Base Color').length).toBe(1);
+  });
+
   it('shows advanced params in the advanced controls section', () => {
     render(<PresetEditor />);
 
@@ -323,7 +333,32 @@ describe('preset UI integration', () => {
 
   it('reads schema control values from styleParams and writes edits back via param namespace', () => {
     const doc = makeDoc(2);
-    doc.banks.blade_in.presets[0].blades[0].styleParams = { style_option: '2' };
+    doc.banks.blade_in.presets[0].blades[0].style = 'hump_flicker';
+    doc.banks.blade_in.presets[0].blades[0].styleParams = { hump_amount: '2' };
+    useConfigStore.setState({
+      sections: parseIni(buildBladeInIni(doc)),
+      doc,
+      activeBank: 'blade_in',
+      activePresetIndex: 0,
+      activeBladeIndex: 0,
+      isDirty: false,
+    });
+
+    render(<PresetEditor />);
+
+    const advancedSection = screen.getByTestId('advanced-style-controls');
+    const humpAmountInput = within(advancedSection).getByDisplayValue('2') as HTMLInputElement;
+    fireEvent.change(humpAmountInput, { target: { value: '7' } });
+
+    const state = useConfigStore.getState();
+    const presetSection = state.sections.find((section) => section.name.toLowerCase() === 'preset1');
+    expect(state.doc?.banks.blade_in.presets[0].blades[0].styleParams?.hump_amount).toBe('7');
+    expect(presetSection?.params['blade1_param.hump_amount']).toBe('7');
+  });
+
+  it('writes shared-core schema color edits directly to blade keys', () => {
+    const doc = makeDoc(2);
+    doc.banks.blade_in.presets[0].blades[0].style = 'fire_blade';
     useConfigStore.setState({
       sections: parseIni(buildBladeInIni(doc)),
       doc,
@@ -336,12 +371,14 @@ describe('preset UI integration', () => {
     render(<PresetEditor />);
 
     const basicSection = screen.getByTestId('basic-style-controls');
-    const styleOptionInput = within(basicSection).getByDisplayValue('2') as HTMLInputElement;
-    fireEvent.change(styleOptionInput, { target: { value: '7' } });
+    const baseColorInput = within(basicSection).getByDisplayValue('Blue') as HTMLInputElement;
+    fireEvent.change(baseColorInput, { target: { value: 'Red' } });
 
     const state = useConfigStore.getState();
     const presetSection = state.sections.find((section) => section.name.toLowerCase() === 'preset1');
-    expect(state.doc?.banks.blade_in.presets[0].blades[0].styleParams?.style_option).toBe('7');
-    expect(presetSection?.params['blade1_param.style_option']).toBe('7');
+    expect(state.doc?.banks.blade_in.presets[0].blades[0].params.base_color).toBe('Red');
+    expect(state.doc?.banks.blade_in.presets[0].blades[0].styleParams?.base_color).toBeUndefined();
+    expect(presetSection?.params.blade1_base_color).toBe('Red');
+    expect(presetSection?.params['blade1_param.base_color']).toBeUndefined();
   });
 });

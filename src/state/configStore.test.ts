@@ -187,7 +187,7 @@ describe('configStore save lifecycle', () => {
     expect(state.doc.hardwareProfile.numBlades).toBe(2);
     expect(state.doc.hardwareProfile.numButtons).toBe(2);
     expect(state.doc.banks.blade_in.presets[0]?.blades).toHaveLength(2);
-    expect(samplePresetSection?.params.blade2_style).toBe('standard');
+    expect(samplePresetSection?.params.blade2_style).toBe('builtin 0 2');
   });
 
   it('loadSample honors single-blade hardware profile when loading sample defaults', async () => {
@@ -530,7 +530,7 @@ describe('configStore save lifecycle', () => {
     expect(state.isConnected).toBe(true);
     expect(state.error?.toLowerCase()).toContain('loaded sample');
     expect(state.doc.banks.blade_in.presets.length).toBeGreaterThan(0);
-    expect(samplePresetSection?.params.blade1_style).toBe('standard');
+    expect(samplePresetSection?.params.blade1_style).toBe('builtin 0 1');
   });
 
   it('uses hardware blade count for sample fallback when both INI banks are missing', async () => {
@@ -550,7 +550,7 @@ describe('configStore save lifecycle', () => {
 
     expect(state.doc.hardwareProfile.numBlades).toBe(1);
     expect(state.doc.banks.blade_in.presets[0]?.blades).toHaveLength(1);
-    expect(samplePresetSection?.params.blade1_style).toBe('standard');
+    expect(samplePresetSection?.params.blade1_style).toBe('builtin 0 1');
     expect(samplePresetSection?.params.blade2_style).toBeUndefined();
   });
 

@@ -210,11 +210,17 @@ export class SerialManager {
     }
   }
 
-  private cleanupWriter() {
+  private async cleanupWriter() {
     if (!this.writer) return;
 
     const writer = this.writer;
     this.writer = null;
+
+    try {
+      await writer.abort();
+    } catch (error: unknown) {
+      console.warn('Writer abort failed during serial cleanup:', error);
+    }
 
     try {
       writer.releaseLock();
@@ -235,7 +241,7 @@ export class SerialManager {
     const port = this.port;
     this.onLineReceived = null;
     await this.cleanupReader();
-    this.cleanupWriter();
+    await this.cleanupWriter();
     if (port) await this.closePortQuietly(port);
     this.port = null;
   }
@@ -248,7 +254,7 @@ export class SerialManager {
 
     this.onLineReceived = null;
     await this.cleanupReader();
-    this.cleanupWriter();
+    await this.cleanupWriter();
     await this.closePortQuietly(port);
 
     let lastError: unknown = null;
@@ -518,9 +524,57 @@ export class SerialManager {
     };
   }
 
+  private async checkFontForBootOrFont(fontPath: string, depth = 0): Promise<boolean> {
+    if (depth > 2) return false; // Limit recursion depth
+    
+    const lines = await this.collectCommandLines(`dir ${fontPath}`);
+    if (lines.some(l => l.includes('No such directory.'))) return false;
+
+    const subdirs: string[] = [];
+
+    for (const line of lines) {
+      if (line.includes('Done listing files.') || line.includes('No such directory.')) continue;
+      
+      const parts = line.split(' ');
+      const name = parts[0];
+      if (!name) continue;
+
+      const lowerName = name.trim().toLowerCase();
+      
+      // Match boot.wav, boot1.wav, font.wav, font1.wav, etc.
+      if (/^(boot|font)\d*\.wav$/.test(lowerName)) {
+        return true;
+      }
+
+      // If it doesn't have an extension, it might be a subdirectory
+      if (!lowerName.includes('.')) {
+        subdirs.push(name);
+      }
+    }
+
+    // Recursively check subdirectories
+    for (const subdir of subdirs) {
+      const found = await this.checkFontForBootOrFont(`${fontPath}/${subdir}`, depth + 1);
+      if (found) return true;
+    }
+
+    return false;
+  }
+
   async listFonts(): Promise<string[]> {
     const lines = await this.collectCommandLines('list_fonts');
-    return parseMediaListing(lines);
+    const allFonts = parseMediaListing(lines);
+    const validFonts: string[] = [];
+    
+    // Check each font directory for boot or font files anywhere within
+    for (const font of allFonts) {
+      if (!font) continue;
+      const isValid = await this.checkFontForBootOrFont(font);
+      if (isValid) {
+        validFonts.push(font);
+      }
+    }
+    return validFonts;
   }
 
   async listTracks(font: string): Promise<string[]> {
