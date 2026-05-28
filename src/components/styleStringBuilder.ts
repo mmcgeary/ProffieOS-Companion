@@ -176,7 +176,8 @@ export const buildStyleString = (blade: PresetConfig['blades'][number]): string 
 
       if (isColorSymbol(param.arg_symbol)) {
         args[argIndex] = resolveColor(value);
-      } else {
+      } else if (!/^\d+,\d+,\d+$/.test(value)) {
+        // Skip color-format strings (R,G,B) at integer positions — stale data from old configs
         args[argIndex] = value;
       }
     }
@@ -220,11 +221,14 @@ export const buildStyleString = (blade: PresetConfig['blades'][number]): string 
     args[4] = duration.toString();
   } else if (args[0] === 'ini_pulse') {
     // ini_pulse (PulsingX) expects pulse_rate at Arg 3.
-    // pulsing_stripes gives stripe_width at Arg 3, stripe_speed at Arg 4, pulse_rate at Arg 38.
-    if (args[38] && args[38] !== '~') {
-      args[3] = args[38];
+    // pulsing_stripes gives pulse_rate at PULSE_SPEED_ARG (58).
+    if (args[58] && args[58] !== '~') {
+      args[3] = args[58];
     }
   }
+
+  // Trim trailing '~' tokens — keeps style strings short; firmware uses defaults for missing args
+  while (args.length > 3 && args[args.length - 1] === '~') args.pop();
 
   return args.join(' ');
 };
