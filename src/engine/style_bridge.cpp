@@ -84,6 +84,8 @@ struct MockBatteryMonitor {
 MockBatteryMonitor battery_monitor;
 
 // 2. Concrete Printer
+// Block the real dynamic_mixer.h — our MockDynamicMixer above is the audio source.
+#define SOUND_DYNAMIC_MIXER_H
 #include "../../../ProffieOS/common/common.h"
 #include "../../../ProffieOS/common/math.h"
 #include "../../../ProffieOS/common/range.h"
