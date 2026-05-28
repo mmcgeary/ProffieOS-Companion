@@ -94,6 +94,7 @@ const BUILTIN_STYLES = [
   { value: 'blink_accent', label: 'Blink Accent' },
   { value: 'random_blink_accent', label: 'Random Blink Accent' },
   { value: 'color_cycle_accent', label: 'Color Cycle Accent' },
+  { value: 'film_blade', label: 'Film Blade' },
 ];
 
 const COLOR_FIELDS: Array<{ key: string; label: string }> = [
