@@ -1,5 +1,5 @@
 import React from 'react';
-import { Music, Palette, Sliders, Type } from 'lucide-react';
+import { Music, Palette, Type } from 'lucide-react';
 import type { ConfigBank, PresetConfig } from '../config/types';
 import { serialManager } from '../serial/serialManager';
 import { useConfigStore } from '../state/configStore';
@@ -10,9 +10,6 @@ import {
   OFF_MODE_OPTIONS,
   getOffStateValue,
   getSchemaControlsForStyle,
-  getStyleTuningValue,
-  getVisibleStyleTuningArgs,
-  type StyleTuningKey,
 } from './styleTuningConfig';
 
 const ColorInput = ({
@@ -262,6 +259,14 @@ export const PresetEditor: React.FC = () => {
   const activeSectionIndex = presetSections[activePresetIndex]?.index ?? -1;
   const showBankSelector = Boolean(doc?.hardwareProfile.hasBladeDetect);
 
+  const globalSectionIndex = React.useMemo(
+    () => sections.findIndex((s) => s.name.toLowerCase() === 'global'),
+    [sections]
+  );
+  const globalLengthStr = doc?.shared.global[`blade${selectedBladeIndex + 1}_length`];
+  const hwLength = doc?.hardwareProfile.bladeLengths?.[selectedBladeIndex];
+  const currentBladeLength = globalLengthStr ? parseInt(globalLengthStr, 10) : (hwLength ?? 144);
+
   const handleBankChange = (value: string) => {
     if (value === 'blade_in' || value === 'blade_out') {
       setActiveBank(value as ConfigBank);
@@ -398,7 +403,6 @@ export const PresetEditor: React.FC = () => {
   };
 
   const styleString = buildStyleString(selectedBlade);
-  const visibleStyleTuningArgs = getVisibleStyleTuningArgs(selectedBlade.style, selectedBlade.params);
   const schemaControls = getSchemaControlsForStyle(selectedBlade.style);
   const controlGroups: Record<'basic' | 'advanced', typeof schemaControls> = { basic: [], advanced: [] };
   for (const control of schemaControls) {
@@ -406,7 +410,6 @@ export const PresetEditor: React.FC = () => {
   }
   const basicControls = controlGroups.basic; 
   const advancedControls = controlGroups.advanced;
-  const schemaControlKeys = new Set(schemaControls.map((control) => control.key));
 
   return (
     <div
@@ -481,8 +484,43 @@ export const PresetEditor: React.FC = () => {
                 {activePreset.name || 'Unnamed Preset'}
               </h2>
             </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-muted)' }}>
+              <label htmlFor="bladeLengthInput">Length:</label>
+              <input
+                id="bladeLengthInput"
+                type="number"
+                min="1"
+                max="999"
+                value={currentBladeLength}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (globalSectionIndex >= 0) {
+                    updateParam(globalSectionIndex, `blade${selectedBladeIndex + 1}_length`, val);
+                  }
+                }}
+                onBlur={(e) => {
+                  const val = e.target.value;
+                  if (isConnected && val) {
+                    serialManager.writeCommand(`set_blade_length ${selectedBladeIndex + 1} ${val}`).catch(console.error);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.currentTarget.blur();
+                  }
+                }}
+                style={{
+                  width: '60px',
+                  padding: '4px',
+                  borderRadius: '4px',
+                  border: '1px solid var(--border)',
+                  background: 'var(--bg)',
+                  color: 'var(--text)',
+                }}
+              />
+            </div>
           </div>
-          <BladeCanvas styleString={styleString} numLeds={144} />
+          <BladeCanvas styleString={styleString} numLeds={currentBladeLength} />
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>

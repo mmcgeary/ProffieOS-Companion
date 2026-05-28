@@ -483,18 +483,6 @@ describe('SerialManager', () => {
     emitLine(manager, 'Vader');
     await vi.advanceTimersByTimeAsync(250); // timeout for list_fonts
 
-    // Next command is dir Kestis
-    await vi.advanceTimersByTimeAsync(50);
-    expect(decodedWrites(writeMock)).toContain('dir Kestis\n');
-    emitLine(manager, 'boot.wav 1234');
-    await vi.advanceTimersByTimeAsync(250); // timeout for dir Kestis
-
-    // Next command is dir Vader
-    await vi.advanceTimersByTimeAsync(50);
-    expect(decodedWrites(writeMock)).toContain('dir Vader\n');
-    emitLine(manager, 'boot.wav 5678');
-    await vi.advanceTimersByTimeAsync(250); // timeout for dir Vader
-
     await expect(fontsPromise).resolves.toEqual(['Kestis', 'Vader']);
     expect((manager as unknown as SerialManagerInternals).onLineReceived).toBeNull();
   });

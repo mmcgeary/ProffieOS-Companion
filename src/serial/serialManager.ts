@@ -54,6 +54,7 @@ const parseHardwareProfile = (lines: string[]): ParsedHardwareProfile => {
   let numButtons: number | null = null;
   let hasBladeDetect: boolean | null = null;
   let matchedProfileToken = false;
+  const bladeLengths: number[] = [];
 
   lines.forEach((line) => {
     const normalizedLine = line
@@ -110,6 +111,18 @@ const parseHardwareProfile = (lines: string[]): ParsedHardwareProfile => {
           }
           return;
         }
+
+        if (key.startsWith('blade') && key.endsWith('_length')) {
+          matchedProfileToken = true;
+          const bladeNum = parseInt(key.slice(5, -7), 10);
+          if (!isNaN(bladeNum) && bladeNum >= 1) {
+            const parsed = parsePositiveInteger(value);
+            if (parsed !== null) {
+              bladeLengths[bladeNum - 1] = parsed;
+            }
+          }
+          return;
+        }
       });
   });
 
@@ -117,6 +130,7 @@ const parseHardwareProfile = (lines: string[]): ParsedHardwareProfile => {
     numBlades: numBlades ?? 1,
     numButtons: numButtons ?? 1,
     hasBladeDetect: hasBladeDetect ?? undefined,
+    bladeLengths,
     matchedProfileToken,
   };
 };
@@ -125,6 +139,7 @@ export interface HardwareProfile {
   numBlades: number;
   numButtons: number;
   hasBladeDetect?: boolean;
+  bladeLengths?: number[];
 }
 
 export class SerialManager {
@@ -524,57 +539,9 @@ export class SerialManager {
     };
   }
 
-  private async checkFontForBootOrFont(fontPath: string, depth = 0): Promise<boolean> {
-    if (depth > 2) return false; // Limit recursion depth
-    
-    const lines = await this.collectCommandLines(`dir ${fontPath}`);
-    if (lines.some(l => l.includes('No such directory.'))) return false;
-
-    const subdirs: string[] = [];
-
-    for (const line of lines) {
-      if (line.includes('Done listing files.') || line.includes('No such directory.')) continue;
-      
-      const parts = line.split(' ');
-      const name = parts[0];
-      if (!name) continue;
-
-      const lowerName = name.trim().toLowerCase();
-      
-      // Match boot.wav, boot1.wav, font.wav, font1.wav, etc.
-      if (/^(boot|font)\d*\.wav$/.test(lowerName)) {
-        return true;
-      }
-
-      // If it doesn't have an extension, it might be a subdirectory
-      if (!lowerName.includes('.')) {
-        subdirs.push(name);
-      }
-    }
-
-    // Recursively check subdirectories
-    for (const subdir of subdirs) {
-      const found = await this.checkFontForBootOrFont(`${fontPath}/${subdir}`, depth + 1);
-      if (found) return true;
-    }
-
-    return false;
-  }
-
   async listFonts(): Promise<string[]> {
     const lines = await this.collectCommandLines('list_fonts');
-    const allFonts = parseMediaListing(lines);
-    const validFonts: string[] = [];
-    
-    // Check each font directory for boot or font files anywhere within
-    for (const font of allFonts) {
-      if (!font) continue;
-      const isValid = await this.checkFontForBootOrFont(font);
-      if (isValid) {
-        validFonts.push(font);
-      }
-    }
-    return validFonts;
+    return parseMediaListing(lines);
   }
 
   async listTracks(font: string): Promise<string[]> {
@@ -582,6 +549,11 @@ export class SerialManager {
     const command = trimmedFont ? `list_tracks ${trimmedFont}` : 'list_tracks';
     const lines = await this.collectCommandLines(command);
     return parseMediaListing(lines);
+  }
+
+  async writeCommand(command: string): Promise<void> {
+    const writer = this.getConnectedWriter();
+    await writer.write(this.encoder.encode(`${command}\n`));
   }
 }
 

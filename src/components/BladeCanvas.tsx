@@ -8,7 +8,7 @@ interface BladeCanvasProps {
 
 export const BladeCanvas: React.FC<BladeCanvasProps> = ({ styleString, numLeds }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { render, engine, error, isReady } = useProffieEngine();
+  const { render, engine, triggerEffect, error, isReady } = useProffieEngine();
   const requestRef = useRef<number>(undefined);
 
   useEffect(() => {
@@ -66,17 +66,70 @@ export const BladeCanvas: React.FC<BladeCanvasProps> = ({ styleString, numLeds }
       {error && <div style={{ color: 'red', fontSize: '12px', marginBottom: '5px' }}>{error}</div>}
       <canvas 
         ref={canvasRef} 
-        width={1000} 
+        width={numLeds} 
         height={30} 
         style={{ 
-          width: '100%', 
+          width: `${Math.min(100, Math.max(5, (numLeds / 144) * 100))}%`, 
           height: '30px', 
           backgroundColor: '#000', 
           borderRadius: '15px', 
           boxShadow: '0 0 15px rgba(255,255,255,0.1)',
-          display: 'block' 
+          display: 'block',
+          marginBottom: '16px',
+          imageRendering: 'pixelated'
         }} 
       />
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+        <button 
+          onClick={() => triggerEffect?.('clash')}
+          style={buttonStyle}
+        >Clash</button>
+        <button 
+          onClick={() => triggerEffect?.('blast')}
+          style={buttonStyle}
+        >Blast</button>
+        <button 
+          onClick={() => triggerEffect?.('stab')}
+          style={buttonStyle}
+        >Stab</button>
+        <button 
+          onPointerDown={() => triggerEffect?.('lockup', true)}
+          onPointerUp={() => triggerEffect?.('lockup', false)}
+          onPointerLeave={() => triggerEffect?.('lockup', false)}
+          style={buttonStyle}
+        >Lockup</button>
+        <button 
+          onPointerDown={() => triggerEffect?.('drag', true)}
+          onPointerUp={() => triggerEffect?.('drag', false)}
+          onPointerLeave={() => triggerEffect?.('drag', false)}
+          style={buttonStyle}
+        >Drag</button>
+        <button 
+          onPointerDown={() => triggerEffect?.('melt', true)}
+          onPointerUp={() => triggerEffect?.('melt', false)}
+          onPointerLeave={() => triggerEffect?.('melt', false)}
+          style={buttonStyle}
+        >Melt</button>
+        <button 
+          onPointerDown={() => triggerEffect?.('lightning_block', true)}
+          onPointerUp={() => triggerEffect?.('lightning_block', false)}
+          onPointerLeave={() => triggerEffect?.('lightning_block', false)}
+          style={buttonStyle}
+        >Lightning</button>
+      </div>
     </div>
   );
+};
+
+const buttonStyle: React.CSSProperties = {
+  background: 'var(--accent)',
+  color: '#fff',
+  border: 'none',
+  padding: '6px 12px',
+  borderRadius: '6px',
+  cursor: 'pointer',
+  fontSize: '12px',
+  fontWeight: 600,
+  userSelect: 'none',
+  transition: 'opacity 0.2s',
 };

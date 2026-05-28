@@ -128,7 +128,6 @@ const createDataTransfer = (): DataTransfer => {
   } as unknown as DataTransfer;
 };
 
-import { SUPPORTED_SCHEMA_ARG_SYMBOLS } from '../config/styleArgSymbols';
 describe('preset UI integration', () => { 
   beforeEach(() => {
     seedStore(3);

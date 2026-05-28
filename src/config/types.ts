@@ -18,7 +18,8 @@ export interface ConfigDocument {
   hardwareProfile: {
     numBlades: number;
     numButtons: number;
-    hasBladeDetect: boolean;
+    hasBladeDetect?: boolean;
+    bladeLengths?: number[];
   };
   shared: {
     global: Record<string, string>;

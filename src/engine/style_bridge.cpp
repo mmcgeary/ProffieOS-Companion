@@ -136,7 +136,7 @@ public:
 
   WASMBlade(uint8_t* buf, int n) : output_buffer(buf), num_leds_val(n) {}
 
-  int num_leds() const override { return num_leds_val; }
+  int get_max_leds() const override { return num_leds_val; }
   int GetBladeNumber() const override { return 0; }
   Color8::Byteorder get_byteorder() const override { return Color8::RGB; }
   bool is_powered() const override { return true; }
@@ -368,5 +368,31 @@ uint8_t* render_style(const char* styleString, float time_ms, int numLeds) {
 
   return g_rgb_buffer;
 }
+
+  EMSCRIPTEN_KEEPALIVE
+  void trigger_clash() {
+    SaberBase::DoClash();
+  }
+
+  EMSCRIPTEN_KEEPALIVE
+  void trigger_blast() {
+    SaberBase::DoBlast();
+  }
+
+  EMSCRIPTEN_KEEPALIVE
+  void trigger_stab() {
+    SaberBase::DoStab();
+  }
+
+  EMSCRIPTEN_KEEPALIVE
+  void set_lockup(int lockup_type) {
+    if (lockup_type == 0) {
+      SaberBase::DoEndLockup();
+      SaberBase::SetLockup(SaberBase::LOCKUP_NONE);
+    } else {
+      SaberBase::SetLockup((SaberBase::LockupType)lockup_type);
+      SaberBase::DoBeginLockup();
+    }
+  }
 
 }

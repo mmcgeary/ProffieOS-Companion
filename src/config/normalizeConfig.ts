@@ -85,6 +85,7 @@ export interface NormalizeConfigInput {
     numBlades: number;
     numButtons: number;
     hasBladeDetect?: boolean;
+    bladeLengths?: number[];
   };
   preferHardwareBladeCount?: boolean;
 }
@@ -391,6 +392,7 @@ export function normalizeConfig({
       numBlades: effectiveNumBlades,
       numButtons: effectiveNumButtons,
       hasBladeDetect: hwProfile.hasBladeDetect ?? bladeOutIni.trim().length > 0,
+      bladeLengths: hwProfile.bladeLengths,
     },
     shared: {
       global,
