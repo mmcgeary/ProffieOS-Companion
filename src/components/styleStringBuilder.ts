@@ -100,20 +100,20 @@ export const NAMED_COLORS: Record<string, string> = {
 };
 
 const ARG_INDEX_BY_TUNING_KEY: Partial<Record<StyleTuningKey, number>> = {
-  flicker_depth: 17,
-  flicker_speed: 18,
-  stripe_width: 19,
-  stripe_speed: 20,
-  motion_gain: 21,
-  noise_mix: 22,
-  base_contrast: 23,
-  drift_rate: 24,
-  warm_shift: 25,
-  jitter_amount: 26,
-  spark_mix: 27,
-  heat_rand: 28,
-  fire_cooling: 29,
-  rainbow_speed: 30,
+  flicker_depth: 39,
+  flicker_speed: 40,
+  stripe_width: 41,
+  stripe_speed: 42,
+  motion_gain: 43,
+  noise_mix: 44,
+  base_contrast: 45,
+  drift_rate: 46,
+  warm_shift: 47,
+  jitter_amount: 48,
+  spark_mix: 49,
+  heat_rand: 50,
+  fire_cooling: 51,
+  rainbow_speed: 52,
 };
 
 const COLOR_ARG_SYMBOLS = new Set([
@@ -187,18 +187,18 @@ export const buildStyleString = (blade: PresetConfig['blades'][number]): string 
   };
 
   // Core color params at canonical positions (ensures defaults)
-  setArgIfUnset(1, resolveColor(mergedParams.base_color || 'Blue'));
-  setArgIfUnset(2, resolveColor(mergedParams.alt_color || 'Cyan'));
-  setArgIfUnset(5, resolveColor(mergedParams.blast_color || 'White'));
-  setArgIfUnset(6, resolveColor(mergedParams.clash_color || 'White'));
-  setArgIfUnset(7, resolveColor(mergedParams.lockup_color || 'White'));
+  setArgIfUnset(ARG_INDEX_BY_SYMBOL.BASE_COLOR_ARG, resolveColor(mergedParams.base_color || 'Blue'));
+  setArgIfUnset(ARG_INDEX_BY_SYMBOL.ALT_COLOR_ARG, resolveColor(mergedParams.alt_color || 'Cyan'));
+  setArgIfUnset(ARG_INDEX_BY_SYMBOL.BLAST_COLOR_ARG, resolveColor(mergedParams.blast_color || 'White'));
+  setArgIfUnset(ARG_INDEX_BY_SYMBOL.CLASH_COLOR_ARG, resolveColor(mergedParams.clash_color || 'White'));
+  setArgIfUnset(ARG_INDEX_BY_SYMBOL.LOCKUP_COLOR_ARG, resolveColor(mergedParams.lockup_color || 'White'));
 
   // Timing and off-state at their canonical positions
-  setArgIfUnset(12, getStyleTuningValue(mergedParams, 'ignition_time'));
-  setArgIfUnset(13, getStyleTuningValue(mergedParams, 'retraction_time'));
-  setArgIfUnset(14, resolveColor(getOffStateValue(mergedParams, 'off_color')));
-  setArgIfUnset(15, getOffModeSelectorValue(getOffStateValue(mergedParams, 'off_mode')));
-  setArgIfUnset(16, getOffStateRateMsValue(mergedParams));
+  setArgIfUnset(ARG_INDEX_BY_SYMBOL.IGNITION_TIME_ARG, getStyleTuningValue(mergedParams, 'ignition_time'));
+  setArgIfUnset(ARG_INDEX_BY_SYMBOL.RETRACTION_TIME_ARG, getStyleTuningValue(mergedParams, 'retraction_time'));
+  setArgIfUnset(ARG_INDEX_BY_SYMBOL.OFF_COLOR_ARG, resolveColor(getOffStateValue(mergedParams, 'off_color')));
+  setArgIfUnset(ARG_INDEX_BY_SYMBOL.OFF_OPTION_ARG, getOffModeSelectorValue(getOffStateValue(mergedParams, 'off_mode')));
+  setArgIfUnset(ARG_INDEX_BY_SYMBOL.RETRACTION_COOL_DOWN_ARG, getOffStateRateMsValue(mergedParams));
 
   // Tuning keys at their canonical positions
   Object.entries(ARG_INDEX_BY_TUNING_KEY).forEach(([key, index]) => {
