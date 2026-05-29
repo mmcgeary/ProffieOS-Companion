@@ -23,7 +23,8 @@ export const GlobalSettings: React.FC = () => {
   };
 
   const rawVolume = parseInt(getGlobalParamValue(globalSection.params, 'volume') || '1000', 10);
-  const maxVolume = doc?.hardwareProfile.maxVolume ?? 3000;
+  const iniMaxVolume = getGlobalParamValue(globalSection.params, 'max_volume');
+  const maxVolume = iniMaxVolume ? parseInt(iniMaxVolume, 10) : (doc?.hardwareProfile.maxVolume ?? 3000);
   // If the parsed volume is higher than maxVolume, show maxVolume in the UI since the board will clamp it
   const volume = Math.min(rawVolume, maxVolume).toString();
 
@@ -56,6 +57,22 @@ export const GlobalSettings: React.FC = () => {
                 onChange={(e) => handleParamChange('volume', e.target.value)}
                 style={{ width: '100%', accentColor: 'var(--accent)', cursor: 'pointer' }}
               />
+            </div>
+            
+            <div className="form-group" style={{ marginTop: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 500 }}>Max Volume Cap</label>
+                <span style={{ fontSize: '14px', fontFamily: 'var(--mono)', color: 'var(--text-dim)' }}>{maxVolume}</span>
+              </div>
+              <input 
+                type="range" min="0" max="3000" step="1"
+                value={maxVolume} 
+                onChange={(e) => handleParamChange('max_volume', e.target.value)}
+                style={{ width: '100%', accentColor: 'var(--text-dim)', cursor: 'pointer' }}
+              />
+              <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--text-dim)', lineHeight: 1.4 }}>
+                Sets the upper limit for the onboard volume menu. 3000 is the absolute hardware maximum.
+              </div>
             </div>
         </div>
 
