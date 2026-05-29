@@ -101,6 +101,13 @@ export const STYLE_TUNING_ARGS = [
   { key: 'heat_rand', label: 'Heat Rand', min: 0, max: 32768, step: 512, defaultValue: 4500, styles: ['fire'] },
   { key: 'fire_cooling', label: 'Fire Cooling', min: 0, max: 255, step: 1, defaultValue: 55, styles: ['fire'] },
   { key: 'rainbow_speed', label: 'Rainbow Speed', min: 1, max: 20000, step: 100, defaultValue: 800, styles: ['rainbow'] },
+  { key: 'clash_width', label: 'Clash Width', min: 0, max: 100, step: 1, defaultValue: 50, styles: ['all'] },
+  { key: 'blast_size', label: 'Blast Size', min: 0, max: 32768, step: 100, defaultValue: 100, styles: ['all'] },
+  { key: 'blast_speed', label: 'Blast Speed', min: 10, max: 5000, step: 10, defaultValue: 400, styles: ['all'] },
+  { key: 'spark_size', label: 'Spark Size', min: 0, max: 32768, step: 100, defaultValue: 2000, styles: ['all'] },
+  { key: 'drag_size', label: 'Drag Size', min: 0, max: 32768, step: 100, defaultValue: 2000, styles: ['all'] },
+  { key: 'melt_size', label: 'Melt Size', min: 0, max: 32768, step: 100, defaultValue: 4000, styles: ['all'] },
+  { key: 'stab_size', label: 'Stab Size', min: 0, max: 32768, step: 100, defaultValue: 14000, styles: ['all'] },
 ] as const satisfies readonly StyleTuningArg[];
 
 export type StyleTuningKey = (typeof STYLE_TUNING_ARGS)[number]['key'];
