@@ -9,7 +9,7 @@ A professional, web-based GUI for configuring ProffieOS 8.x+ post-flash settings
 - **Preset Management**: Easily add, remove, and modify presets, including sound fonts, tracks, and colors.
 - **Style Tuning**: Interactive sliders for real-time adjustment of style arguments (flicker speed, depth, etc.).
 - **Button Mapping**: Visual interface for configuring button actions for both 'On' and 'Off' states.
-- **Global Settings**: Configure volume, clash thresholds, and gesture flags without re-flashing.
+- **Global Settings**: Configure volume (0-3000 scale), clash thresholds, gesture toggles, overall blade dimming (0-100%), and hardware timeouts (idle off time, motion timeout, button click timings) dynamically without re-flashing.
 
 ## Tech Stack
 
@@ -92,6 +92,16 @@ blade1_param.style_option = 2
 
 See `props/saber_styles_reference.md` in the firmware repo for the full
 parameter reference.
+
+## Global Settings & Timeouts
+
+The Companion App allows you to configure deep hardware settings that previously required a re-flash in ProffieOS:
+
+- **Volume**: A precise `0-3000` scale.
+- **Blade Dimming**: Overall brightness scaling from `0-100%`.
+- **Timeouts**: Configure deep sleep `idle_off_time`, gesture `motion_timeout`, and button click timings dynamically.
+
+These are written to the `[global]` block of your `saber_config.ini`.
 
 ## License
 
