@@ -272,6 +272,148 @@ describe('SerialManager', () => {
     expect((manager as unknown as SerialManagerInternals).writer).toBeNull();
   });
 
+  it('reconnectAfterReset falls back to another authorized port when current port cannot reopen', async () => {
+    const manager = new SerialManager();
+    const startReadingMock = vi.fn();
+    (manager as unknown as SerialManagerInternals).startReading = startReadingMock;
+
+    const staleReader = {
+      cancel: vi.fn().mockResolvedValue(undefined),
+      releaseLock: vi.fn(),
+    } as unknown as ReadableStreamDefaultReader<Uint8Array>;
+    const staleWriter = {
+      abort: vi.fn().mockResolvedValue(undefined),
+      releaseLock: vi.fn(),
+    } as unknown as WritableStreamDefaultWriter<Uint8Array>;
+
+    const failingPort = {
+      open: vi.fn().mockRejectedValue(new Error('device busy')),
+      close: vi.fn().mockResolvedValue(undefined),
+      readable: { getReader: vi.fn() },
+      writable: { getWriter: vi.fn() },
+    };
+
+    const recoveredReader = {
+      read: vi.fn().mockResolvedValue({ done: true, value: undefined }),
+      cancel: vi.fn().mockResolvedValue(undefined),
+      releaseLock: vi.fn(),
+    } as unknown as ReadableStreamDefaultReader<Uint8Array>;
+    const recoveredWriter = {
+      releaseLock: vi.fn(),
+    } as unknown as WritableStreamDefaultWriter<Uint8Array>;
+    const recoveredPort = {
+      open: vi.fn().mockResolvedValue(undefined),
+      close: vi.fn().mockResolvedValue(undefined),
+      readable: { getReader: vi.fn().mockReturnValue(recoveredReader) },
+      writable: { getWriter: vi.fn().mockReturnValue(recoveredWriter) },
+    };
+
+    const internals = manager as unknown as SerialManagerInternals;
+    internals.port = failingPort as unknown as SerialManagerInternals['port'];
+    internals.reader = staleReader;
+    internals.writer = staleWriter;
+
+    const originalNavigator = globalThis.navigator;
+    Object.defineProperty(globalThis, 'navigator', {
+      configurable: true,
+      value: {
+        serial: {
+          requestPort: vi.fn(),
+          getPorts: vi.fn().mockResolvedValue([recoveredPort]),
+        },
+      },
+    });
+
+    try {
+      const reconnectPromise = manager.reconnectAfterReset();
+      await vi.advanceTimersByTimeAsync(4500);
+      await expect(reconnectPromise).resolves.toBeUndefined();
+
+      expect(failingPort.open).toHaveBeenCalled();
+      expect(recoveredPort.open).toHaveBeenCalledWith({ baudRate: 115200 });
+      expect((manager as unknown as SerialManagerInternals).port).toBe(recoveredPort);
+    } finally {
+      Object.defineProperty(globalThis, 'navigator', {
+        configurable: true,
+        value: originalNavigator,
+      });
+    }
+  });
+
+  it('reconnectAfterReset detects authorized ports that appear after reboot delay', async () => {
+    const manager = new SerialManager();
+    const startReadingMock = vi.fn();
+    (manager as unknown as SerialManagerInternals).startReading = startReadingMock;
+
+    const staleReader = {
+      cancel: vi.fn().mockResolvedValue(undefined),
+      releaseLock: vi.fn(),
+    } as unknown as ReadableStreamDefaultReader<Uint8Array>;
+    const staleWriter = {
+      abort: vi.fn().mockResolvedValue(undefined),
+      releaseLock: vi.fn(),
+    } as unknown as WritableStreamDefaultWriter<Uint8Array>;
+
+    const initialPort = {
+      open: vi.fn().mockRejectedValue(new Error('device disconnected during reboot')),
+      close: vi.fn().mockResolvedValue(undefined),
+      readable: { getReader: vi.fn() },
+      writable: { getWriter: vi.fn() },
+    };
+
+    const recoveredReader = {
+      read: vi.fn().mockResolvedValue({ done: true, value: undefined }),
+      cancel: vi.fn().mockResolvedValue(undefined),
+      releaseLock: vi.fn(),
+    } as unknown as ReadableStreamDefaultReader<Uint8Array>;
+    const recoveredWriter = {
+      releaseLock: vi.fn(),
+    } as unknown as WritableStreamDefaultWriter<Uint8Array>;
+    const recoveredPort = {
+      open: vi.fn().mockResolvedValue(undefined),
+      close: vi.fn().mockResolvedValue(undefined),
+      readable: { getReader: vi.fn().mockReturnValue(recoveredReader) },
+      writable: { getWriter: vi.fn().mockReturnValue(recoveredWriter) },
+    };
+
+    const internals = manager as unknown as SerialManagerInternals;
+    internals.port = initialPort as unknown as SerialManagerInternals['port'];
+    internals.reader = staleReader;
+    internals.writer = staleWriter;
+
+    const getPortsMock = vi
+      .fn()
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValue([recoveredPort]);
+
+    const originalNavigator = globalThis.navigator;
+    Object.defineProperty(globalThis, 'navigator', {
+      configurable: true,
+      value: {
+        serial: {
+          requestPort: vi.fn(),
+          getPorts: getPortsMock,
+        },
+      },
+    });
+
+    try {
+      const reconnectPromise = manager.reconnectAfterReset();
+      await vi.advanceTimersByTimeAsync(5000);
+      await expect(reconnectPromise).resolves.toBeUndefined();
+
+      expect(getPortsMock).toHaveBeenCalledTimes(3);
+      expect(recoveredPort.open).toHaveBeenCalledWith({ baudRate: 115200 });
+      expect((manager as unknown as SerialManagerInternals).port).toBe(recoveredPort);
+    } finally {
+      Object.defineProperty(globalThis, 'navigator', {
+        configurable: true,
+        value: originalNavigator,
+      });
+    }
+  });
+
   it('parses hardware profile from key=value response lines', async () => {
     const manager = new SerialManager();
     const writeMock = vi.fn().mockResolvedValue(undefined);

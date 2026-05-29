@@ -27,6 +27,13 @@ const getErrorMessage = (error: unknown): string => {
   return 'Unknown WASM error';
 };
 
+export const LOCKUP_TYPE_BY_EFFECT = {
+  lockup: 1,
+  drag: 2,
+  melt: 5,
+  lightning_block: 6,
+} as const;
+
 export const useProffieEngine = () => {
   const [engine, setEngine] = useState<ProffieEngineInstance | null>(null);
   const [error, setError] = useState<string | null>(() => {
@@ -128,16 +135,16 @@ export const useProffieEngine = () => {
         if (triggerStabRef.current) triggerStabRef.current();
         break;
       case 'lockup':
-        if (setLockupRef.current) setLockupRef.current(state ? 1 : 0); // LOCKUP_NORMAL is 1, LOCKUP_NONE is 0
+        if (setLockupRef.current) setLockupRef.current(state ? LOCKUP_TYPE_BY_EFFECT.lockup : 0);
         break;
       case 'drag':
-        if (setLockupRef.current) setLockupRef.current(state ? 2 : 0); // LOCKUP_DRAG is 2
+        if (setLockupRef.current) setLockupRef.current(state ? LOCKUP_TYPE_BY_EFFECT.drag : 0);
         break;
       case 'melt':
-        if (setLockupRef.current) setLockupRef.current(state ? 3 : 0); // LOCKUP_MELT is 3
+        if (setLockupRef.current) setLockupRef.current(state ? LOCKUP_TYPE_BY_EFFECT.melt : 0);
         break;
       case 'lightning_block':
-        if (setLockupRef.current) setLockupRef.current(state ? 4 : 0); // LOCKUP_LIGHTNING_BLOCK is 4
+        if (setLockupRef.current) setLockupRef.current(state ? LOCKUP_TYPE_BY_EFFECT.lightning_block : 0);
         break;
     }
   }, [isReady]);

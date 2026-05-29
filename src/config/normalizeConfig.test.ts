@@ -134,8 +134,8 @@ describe('normalizeConfig', () => {
     const rebuiltBladeInPreset = rebuiltBladeIn.find((section) => section.name.toLowerCase() === 'preset1');
     const rebuiltBladeOutPreset = rebuiltBladeOut.find((section) => section.name.toLowerCase() === 'preset1');
 
-    expect(rebuiltBladeInPreset?.params.blade1_style).toBe('builtin 0 1');
-    expect(rebuiltBladeInPreset?.params.blade3_style).toBe('builtin 0 3');
+    expect(rebuiltBladeInPreset?.params.blade1_style).toBe('audio_flicker');
+    expect(rebuiltBladeInPreset?.params.blade3_style).toBe('audio_flicker');
     expect(rebuiltBladeOutPreset?.params.blade2_style).toBe('pulse');
     expect(rebuiltBladeOutPreset?.params.blade2_base_color).toBe('red');
   });
@@ -189,7 +189,7 @@ describe('normalizeConfig', () => {
     expect(doc.hardwareProfile.numBlades).toBe(2);
     expect(doc.hardwareProfile.numButtons).toBe(2);
     expect(doc.banks.blade_in.presets[0]?.blades).toHaveLength(2);
-    expect(doc.banks.blade_in.presets[0]?.blades[1]?.style).toBe('pulse');
+    expect(doc.banks.blade_in.presets[0]?.blades[1]?.style).toBe('pulse_accent');
     expect(doc.banks.blade_in.presets[0]?.blades[1]?.params.base_color).toBe('red');
   });
 
@@ -293,5 +293,132 @@ blade1_param.fire_mix=22000
 
     expect(preset?.params.blade2_style).toBe('pulse');
     expect(preset?.params.blade2_base_color).toBe('red');
+  });
+
+  it('uses blade lengths from hardware profile when globals do not override them', () => {
+    const doc = normalizeConfig({
+      bladeInIni: dualBladeCanonicalIni,
+      bladeOutIni: dualBladeCanonicalIni,
+      hwProfile: { numBlades: 2, numButtons: 2, hasBladeDetect: true, bladeLengths: [144, 130] },
+    });
+
+    expect(doc.hardwareProfile.bladeLengths).toEqual([144, 130]);
+  });
+
+  it('prefers global bladeN_length values over flashed hardware profile lengths', () => {
+    const iniWithGlobalLengths = `[global]
+num_buttons=2
+blade1_length=180
+blade2_length=95
+
+[preset1]
+name=Length Override
+font=Kestis
+track=
+blade1_style=standard
+blade2_style=standard
+`;
+
+    const doc = normalizeConfig({
+      bladeInIni: iniWithGlobalLengths,
+      bladeOutIni: iniWithGlobalLengths,
+      hwProfile: { numBlades: 2, numButtons: 2, hasBladeDetect: true, bladeLengths: [144, 130] },
+    });
+
+    expect(doc.hardwareProfile.bladeLengths).toEqual([180, 95]);
+  });
+
+  it('serializes accent UI style aliases to parser style names expected by firmware', () => {
+    const accentAliasIni = `[global]
+num_buttons=2
+
+[preset1]
+name=Accent Alias
+font=Kestis
+track=
+blade1_style=audio_flicker
+blade2_style=pulse_accent
+blade2_base_color=DarkOrange
+blade2_alt_color=DarkOrange
+blade2_off_color=Orange
+`;
+
+    const doc = normalizeConfig({
+      bladeInIni: accentAliasIni,
+      bladeOutIni: accentAliasIni,
+      hwProfile: { numBlades: 2, numButtons: 2, hasBladeDetect: true },
+    });
+
+    const rebuilt = parseIni(buildBladeInIni(doc));
+    const preset = rebuilt.find((section) => section.name.toLowerCase() === 'preset1');
+    expect(preset?.params.blade2_style).toBe('pulse');
+  });
+
+  it('normalizes parser style names back to UI accent aliases on load', () => {
+    const parserNameIni = `[global]
+num_buttons=2
+
+[preset1]
+name=Parser Alias
+font=Kestis
+track=
+blade1_style=audio_flicker
+blade2_style=pulse
+`;
+
+    const doc = normalizeConfig({
+      bladeInIni: parserNameIni,
+      bladeOutIni: parserNameIni,
+      hwProfile: { numBlades: 2, numButtons: 2, hasBladeDetect: true },
+    });
+
+    expect(doc.banks.blade_in.presets[0].blades[1].style).toBe('pulse_accent');
+  });
+
+  it('serializes film_blade with the firmware parser name film_blade', () => {
+    const filmBladeIni = `[global]
+num_buttons=2
+
+[preset1]
+name=Film Blade
+font=Vader
+track=
+blade1_style=film_blade
+blade2_style=audio_flicker
+`;
+
+    const doc = normalizeConfig({
+      bladeInIni: filmBladeIni,
+      bladeOutIni: filmBladeIni,
+      hwProfile: { numBlades: 2, numButtons: 2, hasBladeDetect: true },
+    });
+
+    const rebuilt = parseIni(buildBladeInIni(doc));
+    const preset = rebuilt.find((section) => section.name.toLowerCase() === 'preset1');
+    expect(preset?.params.blade1_style).toBe('film_blade');
+  });
+
+  it('migrates builtin style tokens to canonical parser names on write', () => {
+    const builtinIni = `[global]
+num_buttons=2
+
+[preset1]
+name=Builtin Migration
+font=Kestis
+track=
+blade1_style=builtin 3 1
+blade2_style=builtin 0 2
+`;
+
+    const doc = normalizeConfig({
+      bladeInIni: builtinIni,
+      bladeOutIni: builtinIni,
+      hwProfile: { numBlades: 2, numButtons: 2, hasBladeDetect: true },
+    });
+
+    const rebuilt = parseIni(buildBladeInIni(doc));
+    const preset = rebuilt.find((section) => section.name.toLowerCase() === 'preset1');
+    expect(preset?.params.blade1_style).toBe('energy');
+    expect(preset?.params.blade2_style).toBe('audio_flicker');
   });
 });

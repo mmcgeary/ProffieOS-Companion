@@ -189,7 +189,7 @@ describe('configStore save lifecycle', () => {
     expect(state.doc.hardwareProfile.numButtons).toBe(2);
     expect(state.doc.hardwareProfile.bladeLengths).toEqual([144, 130]);
     expect(state.doc.banks.blade_in.presets[0]?.blades).toHaveLength(2);
-    expect(samplePresetSection?.params.blade2_style).toBe('builtin 0 2');
+    expect(samplePresetSection?.params.blade2_style).toBe('audio_flicker');
   });
 
   it('loadSample honors single-blade hardware profile when loading sample defaults', async () => {
@@ -400,7 +400,7 @@ describe('configStore save lifecycle', () => {
     expect(state.activeBank).toBe('blade_out');
     expect(presetSections).toHaveLength(1);
     expect(presetSections[0]?.params.name).toBe('OutOnly');
-    expect(presetSections[0]?.params.blade1_style).toBe('standard');
+    expect(presetSections[0]?.params.blade1_style).toBe('audio_flicker');
   });
 
   it('updateBladeParam style in blade_out updates doc and bladeN_style section key', () => {
@@ -507,7 +507,7 @@ describe('configStore save lifecycle', () => {
     expect(state.doc.hardwareProfile.numBlades).toBe(2);
     expect(state.doc.hardwareProfile.numButtons).toBe(2);
     expect(state.doc.banks.blade_in.presets[0]?.blades).toHaveLength(2);
-    expect(state.doc.banks.blade_in.presets[0]?.blades[1]?.style).toBe('pulse');
+    expect(state.doc.banks.blade_in.presets[0]?.blades[1]?.style).toBe('pulse_accent');
     expect(presetSection?.params.blade2_style).toBe('pulse');
   });
 
@@ -532,7 +532,7 @@ describe('configStore save lifecycle', () => {
     expect(state.isConnected).toBe(true);
     expect(state.error?.toLowerCase()).toContain('loaded sample');
     expect(state.doc.banks.blade_in.presets.length).toBeGreaterThan(0);
-    expect(samplePresetSection?.params.blade1_style).toBe('builtin 0 1');
+    expect(samplePresetSection?.params.blade1_style).toBe('audio_flicker');
   });
 
   it('uses hardware blade count for sample fallback when both INI banks are missing', async () => {
@@ -552,7 +552,7 @@ describe('configStore save lifecycle', () => {
 
     expect(state.doc.hardwareProfile.numBlades).toBe(1);
     expect(state.doc.banks.blade_in.presets[0]?.blades).toHaveLength(1);
-    expect(samplePresetSection?.params.blade1_style).toBe('builtin 0 1');
+    expect(samplePresetSection?.params.blade1_style).toBe('audio_flicker');
     expect(samplePresetSection?.params.blade2_style).toBeUndefined();
   });
 

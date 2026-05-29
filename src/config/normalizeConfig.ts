@@ -5,6 +5,7 @@ import {
   parseIni,
   type IniSection,
 } from '../parser/iniParser';
+import { generatedStyleSchema } from './generatedStyleSchema';
 import type {
   BladeStyleConfig,
   ConfigBank,
@@ -17,12 +18,15 @@ const BLADE_PARAM_KEY = /^blade(\d+)_(.+)$/i;
 const STYLE_PARAM_PREFIX = 'param.';
 const NUM_BUTTON_KEYS = new Set(['num_buttons', 'numbuttons']);
 const SLOT_KEY = /^slot_(\d+)$/i;
+const BLADE_LENGTH_KEY = /^blade(\d+)_length$/i;
 const TWO_BUTTON_SLOT_IDS = new Set([5, 6, 7, 8, 9, 10, 11, 12, 27, 28]);
 const THREE_BUTTON_SLOT_IDS = new Set([13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 29]);
 const DEFAULT_BLADE_STYLE = 'audio_flicker';
 const CORE_STYLE_PARAM_KEYS = new Set([
   'base_color',
   'alt_color',
+  'alt_color2',
+  'alt_color3',
   'blast_color',
   'clash_color',
   'lockup_color',
@@ -32,21 +36,45 @@ const CORE_STYLE_PARAM_KEYS = new Set([
   'ignition_time',
   'retraction_time',
   'off_color',
+  'off_option',
+  'melt_base',
+  'melt_alt',
+  'lockup_fade',
+  'clash_fade',
+  'lockup_size',
 ]);
 
-const STYLE_TO_BUILTIN: Record<string, string> = {
-  audio_flicker: '0',
-  hump_flicker: '1',
-  pulsing_stripes: '2',
-  energy: '3',
-  fire_unstable: '4',
-  plasma_blade: '5',
-  rainbow_blade: '6',
-  energy_blade: '7',
-  lava_blade: '8',
-  sparkle_blade: '9',
-  fire_blade: '10',
-};
+// All blade param keys whose values must be R,G,B color strings.
+// Any other param that has a color-format value is stale/corrupted data and should be dropped.
+const COLOR_BLADE_PARAM_KEYS = new Set([
+  'base_color',
+  'alt_color',
+  'alt_color2',
+  'alt_color3',
+  'blast_color',
+  'clash_color',
+  'lockup_color',
+  'drag_color',
+  'lb_color',
+  'stab_color',
+  'off_color',
+  'melt_base',
+  'melt_alt',
+]);
+
+const COLOR_FORMAT_RE = /^\d+,\d+,\d+$/;
+
+function sanitizeBladeParams(params: Record<string, string>): Record<string, string> {
+  const clean: Record<string, string> = {};
+  for (const [key, value] of Object.entries(params)) {
+    if (!COLOR_BLADE_PARAM_KEYS.has(key) && COLOR_FORMAT_RE.test(value)) {
+      // Drop color-format values from integer-type slots (stale data from old configs).
+      continue;
+    }
+    clean[key] = value;
+  }
+  return clean;
+}
 
 const BUILTIN_TO_STYLE: Record<string, string> = {
   '0': 'audio_flicker',
@@ -62,20 +90,64 @@ const BUILTIN_TO_STYLE: Record<string, string> = {
   '10': 'fire_blade',
 };
 
-function normalizeBladeStyleName(styleName: string | undefined): string {
-  let normalized = (styleName ?? '').trim().toLowerCase();
-  
-  if (normalized.startsWith('builtin')) {
-    const parts = normalized.split(' ');
-    if (parts.length >= 2 && BUILTIN_TO_STYLE[parts[1]]) {
-      normalized = BUILTIN_TO_STYLE[parts[1]];
-    }
-  }
+const schemaStyles = generatedStyleSchema.styles as Array<{ name: string; parser_name?: string }>;
+const UI_STYLE_TO_PARSER_STYLE: Record<string, string> = Object.fromEntries(
+  schemaStyles.map((style) => [style.name, style.parser_name ?? style.name]),
+);
 
+const PARSER_STYLE_TO_UI_STYLE = Object.fromEntries(
+  Object.entries(UI_STYLE_TO_PARSER_STYLE).map(([uiStyle, parserStyle]) => [parserStyle, uiStyle]),
+) as Record<string, string>;
+
+const LEGACY_PARSER_STYLE_ALIASES: Record<string, string> = {
+  film: 'film_blade',
+};
+
+const resolveIncomingStyleToUiName = (styleName: string): string => {
+  const normalized = styleName.trim().toLowerCase();
   if (!normalized || normalized === 'standard') {
     return DEFAULT_BLADE_STYLE;
   }
-  return normalized;
+
+  if (normalized.startsWith('builtin')) {
+    const parts = normalized.split(' ');
+    const builtinStyle = parts.length >= 2 ? BUILTIN_TO_STYLE[parts[1]] : undefined;
+    if (!builtinStyle) {
+      throw new Error(`Unknown builtin style token: ${styleName}`);
+    }
+    return builtinStyle;
+  }
+
+  const canonicalParserStyle = LEGACY_PARSER_STYLE_ALIASES[normalized] ?? normalized;
+  const uiStyle = PARSER_STYLE_TO_UI_STYLE[canonicalParserStyle];
+  if (uiStyle) {
+    return uiStyle;
+  }
+
+  if (UI_STYLE_TO_PARSER_STYLE[canonicalParserStyle]) {
+    return canonicalParserStyle;
+  }
+
+  return canonicalParserStyle;
+};
+
+const resolveOutgoingParserStyle = (styleName: string): string => {
+  const normalized = styleName.trim().toLowerCase();
+  const canonicalUiStyle = !normalized || normalized === 'standard' ? DEFAULT_BLADE_STYLE : normalized;
+
+  if (UI_STYLE_TO_PARSER_STYLE[canonicalUiStyle]) {
+    return UI_STYLE_TO_PARSER_STYLE[canonicalUiStyle];
+  }
+
+  if (PARSER_STYLE_TO_UI_STYLE[canonicalUiStyle]) {
+    return canonicalUiStyle;
+  }
+
+  return canonicalUiStyle;
+};
+
+function normalizeBladeStyleName(styleName: string | undefined): string {
+  return resolveIncomingStyleToUiName(styleName ?? '');
 }
 
 export interface NormalizeConfigInput {
@@ -205,6 +277,35 @@ function inferNumButtonsFromButtonSlots(sections: IniSection[]): number {
   return inferredNumButtons;
 }
 
+function resolveBladeLengths(
+  global: Record<string, string>,
+  hardwareBladeLengths: number[] | undefined,
+  numBlades: number,
+): number[] | undefined {
+  const lengths = new Array<number | undefined>(numBlades).fill(undefined);
+
+  (hardwareBladeLengths ?? []).forEach((value, index) => {
+    if (index < 0 || index >= numBlades) return;
+    if (Number.isInteger(value) && value > 0) {
+      lengths[index] = value;
+    }
+  });
+
+  Object.entries(global).forEach(([key, rawValue]) => {
+    const match = key.match(BLADE_LENGTH_KEY);
+    if (!match) return;
+    const bladeIndex = Number.parseInt(match[1], 10) - 1;
+    if (bladeIndex < 0 || bladeIndex >= numBlades) return;
+    const parsed = parsePositiveIntegerValue(rawValue);
+    if (parsed !== null) {
+      lengths[bladeIndex] = parsed;
+    }
+  });
+
+  const hasAny = lengths.some((value) => value !== undefined);
+  return hasAny ? (lengths as number[]) : undefined;
+}
+
 function normalizePreset(section: IniSection, numBlades: number): PresetConfig {
   const legacyBladeParams: Record<string, string> = {};
   const legacyStyleParams: Record<string, string> = {};
@@ -255,12 +356,16 @@ function normalizePreset(section: IniSection, numBlades: number): PresetConfig {
     };
 
     const style = normalizeBladeStyleName(mergedParams.style);
-    const bladeParams = { ...mergedParams };
-    delete bladeParams.style;
+    const rawBladeParams = { ...mergedParams };
+    delete rawBladeParams.style;
+    const bladeParams = sanitizeBladeParams(rawBladeParams);
     const bladeStyleParams: Record<string, string> = {};
     Object.entries(mergedStyleParams).forEach(([key, value]) => {
       const normalizedKey = key.trim().toLowerCase();
       if (CORE_STYLE_PARAM_KEYS.has(normalizedKey)) {
+        if (!COLOR_BLADE_PARAM_KEYS.has(normalizedKey) && COLOR_FORMAT_RE.test(value)) {
+          return; // Drop color-format values in integer-type style params too.
+        }
         bladeParams[normalizedKey] = value;
         return;
       }
@@ -333,8 +438,8 @@ function buildBankIni(doc: ConfigDocument, bank: ConfigBank): string {
     const blades = normalizeBladeList(preset, doc.hardwareProfile.numBlades);
     blades.forEach((blade, bladeIndex) => {
       const bladeOrdinal = bladeIndex + 1;
-      const builtinIndex = STYLE_TO_BUILTIN[blade.style];
-      params[`blade${bladeOrdinal}_style`] = builtinIndex ? `builtin ${builtinIndex} ${bladeOrdinal}` : blade.style;
+      const parserStyle = resolveOutgoingParserStyle(blade.style);
+      params[`blade${bladeOrdinal}_style`] = parserStyle;
       Object.entries(blade.params).forEach(([key, value]) => {
         params[`blade${bladeOrdinal}_${key}`] = value;
       });
@@ -386,13 +491,14 @@ export function normalizeConfig({
 
   const global = readSharedSection(bladeInSections, bladeOutSections, 'global');
   global.num_buttons = String(effectiveNumButtons);
+  const bladeLengths = resolveBladeLengths(global, hwProfile.bladeLengths, effectiveNumBlades);
 
   return {
     hardwareProfile: {
       numBlades: effectiveNumBlades,
       numButtons: effectiveNumButtons,
       hasBladeDetect: hwProfile.hasBladeDetect ?? bladeOutIni.trim().length > 0,
-      bladeLengths: hwProfile.bladeLengths,
+      bladeLengths,
     },
     shared: {
       global,

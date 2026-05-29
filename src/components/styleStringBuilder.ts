@@ -137,10 +137,11 @@ export const buildStyleString = (blade: PresetConfig['blades'][number]): string 
   );
   const args = new Array(maxArgIndex + 1).fill('~');
 
-  // Merge core params with styleParams (styleParams override)
+  // Merge params with precedence for direct blade params.
+  // This prevents stale param.* duplicates from overriding explicit core values.
   const mergedParams: Record<string, string> = {
-    ...blade.params,
     ...(blade.styleParams ?? {}),
+    ...blade.params,
   };
 
   // Schema-driven placement for params with known arg positions
@@ -195,6 +196,10 @@ export const buildStyleString = (blade: PresetConfig['blades'][number]): string 
   setArgIfUnset(ARG_INDEX_BY_SYMBOL.BLAST_COLOR_ARG, resolveColor(mergedParams.blast_color || 'White'));
   setArgIfUnset(ARG_INDEX_BY_SYMBOL.CLASH_COLOR_ARG, resolveColor(mergedParams.clash_color || 'White'));
   setArgIfUnset(ARG_INDEX_BY_SYMBOL.LOCKUP_COLOR_ARG, resolveColor(mergedParams.lockup_color || 'White'));
+  setArgIfUnset(
+    ARG_INDEX_BY_SYMBOL.LB_COLOR_ARG,
+    resolveColor(mergedParams.lb_color || mergedParams.lockup_color || mergedParams.base_color || 'White'),
+  );
 
   // Timing and off-state at their canonical positions
   setArgIfUnset(ARG_INDEX_BY_SYMBOL.IGNITION_TIME_ARG, getStyleTuningValue(mergedParams, 'ignition_time'));

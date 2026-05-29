@@ -19,6 +19,7 @@ vi.mock('react', () => ({
 }));
 
 import { useProffieEngine } from './useProffieEngine';
+import { LOCKUP_TYPE_BY_EFFECT } from './useProffieEngine';
 
 const flushPromises = async (cycles = 5) => {
   for (let i = 0; i < cycles; i += 1) {
@@ -68,5 +69,12 @@ describe('useProffieEngine', () => {
     const errorSetter = hookState.setters[1];
     expect(errorSetter).toBeDefined();
     expect(errorSetter).toHaveBeenCalledWith(null);
+  });
+
+  it('maps melt and lightning_block to firmware lockup IDs', () => {
+    expect(LOCKUP_TYPE_BY_EFFECT.lockup).toBe(1);
+    expect(LOCKUP_TYPE_BY_EFFECT.drag).toBe(2);
+    expect(LOCKUP_TYPE_BY_EFFECT.melt).toBe(5);
+    expect(LOCKUP_TYPE_BY_EFFECT.lightning_block).toBe(6);
   });
 });

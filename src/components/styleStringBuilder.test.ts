@@ -44,14 +44,14 @@ describe('styleStringBuilder', () => {
     expect(tokens[9]).toBe('0,65535,0'); // Green
   });
 
-  it('styleParams override core params for the same key', () => {
+  it('direct params override styleParams for overlapping core keys', () => {
     const style = buildStyleString({
       style: 'standard',
       params: { base_color: 'Blue', alt_color: 'Cyan', blast_color: 'White' },
       styleParams: { blast_color: 'Red' },
     });
     const tokens = style.split(' ');
-    expect(tokens[9]).toBe('65535,0,0'); // Red from styleParams wins
+    expect(tokens[9]).toBe('65535,65535,65535'); // White from direct params wins
   });
 
   it('stab_color at arg16 and ignition_time at arg5 coexist without collision', () => {
@@ -177,5 +177,35 @@ describe('styleStringBuilder', () => {
     expect(ARG_INDEX_BY_SYMBOL.HUMP_WIDTH_ARG).toBe(59);
     expect(ARG_INDEX_BY_SYMBOL.STRIPE_WIDTH_ARG).toBe(41);
     expect(ARG_INDEX_BY_SYMBOL.STRIPE_SPEED_ARG).toBe(42);
+  });
+
+  it('defaults lightning block color to lockup_color when lb_color is unset', () => {
+    const style = buildStyleString({
+      style: 'audio_flicker',
+      params: {
+        base_color: 'Blue',
+        lockup_color: 'DodgerBlue',
+      },
+    });
+    const tokens = style.split(' ');
+    expect(tokens[15]).toBe('514,18504,65535'); // LB_COLOR_ARG falls back to lockup_color
+  });
+
+  it('uses direct lockup/lb params over stale styleParams duplicates', () => {
+    const style = buildStyleString({
+      style: 'audio_flicker',
+      params: {
+        base_color: 'Blue',
+        lockup_color: 'Yellow',
+        lb_color: 'Red',
+      },
+      styleParams: {
+        lockup_color: 'White',
+        lb_color: 'White',
+      },
+    });
+    const tokens = style.split(' ');
+    expect(tokens[11]).toBe('65535,65535,0'); // LOCKUP_COLOR_ARG should be Yellow
+    expect(tokens[15]).toBe('65535,0,0'); // LB_COLOR_ARG should be Red
   });
 });

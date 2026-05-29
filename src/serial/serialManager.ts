@@ -10,6 +10,7 @@ interface SerialPortLike {
 interface NavigatorWithSerial extends Navigator {
   serial: {
     requestPort(): Promise<SerialPortLike>;
+    getPorts?(): Promise<SerialPortLike[]>;
   };
 }
 
@@ -18,6 +19,8 @@ const hasSerialSupport = (navigatorObj: Navigator): navigatorObj is NavigatorWit
 };
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+const RECONNECT_TIMEOUT_MS = 15000;
+const RECONNECT_RETRY_DELAY_MS = 250;
 
 const HW_PROFILE_NUM_BLADE_KEYS = new Set(['num_blades', 'numblades']);
 const HW_PROFILE_NUM_BUTTON_KEYS = new Set(['num_buttons', 'numbuttons']);
@@ -272,18 +275,43 @@ export class SerialManager {
     await this.cleanupWriter();
     await this.closePortQuietly(port);
 
-    let lastError: unknown = null;
-    for (let attempt = 1; attempt <= 5; attempt++) {
-      try {
-        await sleep(attempt * 200);
-        await port.open({ baudRate: this.baudRate });
-        this.reader = port.readable.getReader();
-        this.writer = port.writable.getWriter();
-        void this.startReading();
+    const reconnectPorts = [port];
+    const knownPorts = new Set<SerialPortLike>(reconnectPorts);
+    const refreshAuthorizedPorts = async () => {
+      if (!hasSerialSupport(navigator) || typeof navigator.serial.getPorts !== 'function') {
         return;
-      } catch (error: unknown) {
-        lastError = error;
       }
+      try {
+        const authorizedPorts = await navigator.serial.getPorts();
+        for (const authorizedPort of authorizedPorts) {
+          if (!knownPorts.has(authorizedPort)) {
+            knownPorts.add(authorizedPort);
+            reconnectPorts.push(authorizedPort);
+          }
+        }
+      } catch (error: unknown) {
+        console.warn('Failed to enumerate authorized serial ports during reconnect:', error);
+      }
+    };
+
+    let lastError: unknown = null;
+    const deadline = Date.now() + RECONNECT_TIMEOUT_MS;
+    while (Date.now() < deadline) {
+      await refreshAuthorizedPorts();
+      for (const reconnectPort of reconnectPorts) {
+        try {
+          await reconnectPort.open({ baudRate: this.baudRate });
+          this.port = reconnectPort;
+          this.reader = reconnectPort.readable.getReader();
+          this.writer = reconnectPort.writable.getWriter();
+          void this.startReading();
+          return;
+        } catch (error: unknown) {
+          lastError = error;
+        }
+      }
+
+      await sleep(RECONNECT_RETRY_DELAY_MS);
     }
 
     const reason = lastError instanceof Error ? lastError.message : 'unknown error';
@@ -427,7 +455,10 @@ export class SerialManager {
   private async collectCommandLines(command: string): Promise<string[]> {
     const writer = this.getConnectedWriter();
     const allowsEmptyResponse =
-      command === 'list_fonts' || command === 'list_tracks' || command.startsWith('list_tracks ');
+      command === 'list_fonts' ||
+      command === 'list_tracks' ||
+      command.startsWith('list_tracks ') ||
+      command.startsWith('get_blade_length ');
 
     return new Promise((resolve, reject) => {
       let settled = false;
@@ -532,6 +563,7 @@ export class SerialManager {
     if (!parsed.matchedProfileToken) {
       throw new Error('Incompatible firmware: GET_HW_PROFILE returned no profile keys');
     }
+
     return {
       numBlades: parsed.numBlades,
       numButtons: parsed.numButtons,
