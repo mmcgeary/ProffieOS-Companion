@@ -234,6 +234,7 @@ export const PresetEditor: React.FC = () => {
     setActiveBank,
     setActivePresetIndex,
     setActiveBladeIndex,
+    boardSessionId,
   } = useConfigStore();
 
   const [sdFontOptions, setSdFontOptions] = React.useState<string[]>([]);
@@ -296,7 +297,7 @@ export const PresetEditor: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [isConnected]);
+  }, [isConnected, boardSessionId]);
 
   React.useEffect(() => {
     if (!isConnected) {
@@ -320,7 +321,7 @@ export const PresetEditor: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [activePreset?.font, isConnected]);
+  }, [activePreset?.font, isConnected, boardSessionId]);
 
   const fontOptions = React.useMemo(() => {
     const values = new Set<string>();

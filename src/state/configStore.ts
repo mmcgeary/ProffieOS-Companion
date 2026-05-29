@@ -14,6 +14,7 @@ interface ConfigState {
   sections: IniSection[];
   doc: ConfigDocument | null;
   isConnected: boolean;
+  boardSessionId: number;
   isDirty: boolean;
   isLoading: boolean;
   error: string | null;
@@ -351,6 +352,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   sections: [],
   doc: null,
   isConnected: false,
+  boardSessionId: 0,
   isDirty: false,
   isLoading: false,
   error: null,
@@ -364,8 +366,11 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       await serialManager.connect();
-      console.log('Serial connected successfully');
-      set({ isConnected: true, isLoading: false });
+      set((state) => ({
+        isConnected: true,
+        isLoading: false,
+        boardSessionId: state.boardSessionId + 1,
+      }));
 
       setTimeout(async () => {
         const { loadFromBoard } = get();
@@ -567,6 +572,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
         isLoading: false,
         saveStatus: 'success',
         isConnected: true,
+        boardSessionId: get().boardSessionId + 1,
         activePresetIndex: clampIndex(activePresetIndex, maxPresetIndex),
         activeBladeIndex: clampIndex(activeBladeIndex, maxBladeIndex),
       });
