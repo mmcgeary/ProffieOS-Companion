@@ -153,6 +153,7 @@ export interface HardwareProfile {
   numButtons: number;
   hasBladeDetect?: boolean;
   bladeLengths?: number[];
+  maxVolume?: number;
 }
 
 export class SerialManager {
@@ -163,6 +164,15 @@ export class SerialManager {
   private decoder = new TextDecoder();
   private encoder = new TextEncoder();
   private onLineReceived: ((line: string) => void) | null = null;
+  private commandPromise: Promise<void> = Promise.resolve();
+
+  private async enqueue<T>(operation: () => Promise<T>): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      this.commandPromise = this.commandPromise
+        .then(() => operation().then(resolve).catch(reject))
+        .catch(() => operation().then(resolve).catch(reject));
+    });
+  }
 
   async connect() {
     if (!hasSerialSupport(navigator)) {
@@ -345,8 +355,9 @@ export class SerialManager {
   }
 
   private async readIniCommand(command: string): Promise<string> {
-    const writer = this.getConnectedWriter();
-    return new Promise((resolve, reject) => {
+    return this.enqueue(async () => {
+      const writer = this.getConnectedWriter();
+      return new Promise((resolve, reject) => {
       let configBuffer = '';
       let capturing = false;
       let settled = false;
@@ -395,11 +406,13 @@ export class SerialManager {
       };
 
       void writer.write(this.encoder.encode(`${command}\n`)).catch(finishReject);
+      });
     });
   }
 
   private async writeIniCommand(command: string, content: string): Promise<boolean> {
-    const writer = this.getConnectedWriter();
+    return this.enqueue(async () => {
+      const writer = this.getConnectedWriter();
 
     const streamContent = async () => {
       const lines = content.split('\n');
@@ -467,11 +480,13 @@ export class SerialManager {
       };
 
       void writer.write(this.encoder.encode(`${command}\n`)).catch(finishReject);
+      });
     });
   }
 
   private async collectCommandLines(command: string): Promise<string[]> {
-    const writer = this.getConnectedWriter();
+    return this.enqueue(async () => {
+      const writer = this.getConnectedWriter();
     const allowsEmptyResponse =
       command === 'list_fonts' ||
       command === 'list_tracks' ||
@@ -556,6 +571,7 @@ export class SerialManager {
         .write(this.encoder.encode(`${command}\n`))
         .then(() => scheduleNoResponseResolve())
         .catch(finishReject);
+      });
     });
   }
 
@@ -586,7 +602,8 @@ export class SerialManager {
       numBlades: parsed.numBlades,
       numButtons: parsed.numButtons,
       hasBladeDetect: parsed.hasBladeDetect,
-      bladeLengths: parsed.bladeLengths.length > 0 ? parsed.bladeLengths : undefined,
+      bladeLengths: parsed.bladeLengths && parsed.bladeLengths.length > 0 ? parsed.bladeLengths : undefined,
+      maxVolume: parsed.maxVolume,
     };
   }
 
@@ -603,8 +620,10 @@ export class SerialManager {
   }
 
   async writeCommand(command: string): Promise<void> {
-    const writer = this.getConnectedWriter();
-    await writer.write(this.encoder.encode(`${command}\n`));
+    return this.enqueue(async () => {
+      const writer = this.getConnectedWriter();
+      await writer.write(this.encoder.encode(`${command}\n`));
+    });
   }
 }
 

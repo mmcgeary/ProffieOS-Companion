@@ -281,7 +281,7 @@ export const PresetEditor: React.FC = () => {
   }, [activeBladeIndex, selectedBladeIndex, setActiveBladeIndex]);
 
   React.useEffect(() => {
-    if (!isConnected) {
+    if (!isConnected || !doc) {
       return;
     }
 
@@ -300,7 +300,7 @@ export const PresetEditor: React.FC = () => {
   }, [isConnected, boardSessionId]);
 
   React.useEffect(() => {
-    if (!isConnected) {
+    if (!isConnected || !doc) {
       return;
     }
 

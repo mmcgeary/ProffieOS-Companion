@@ -90,7 +90,7 @@ const BUILTIN_TO_STYLE: Record<string, string> = {
   '10': 'fire_blade',
 };
 
-const schemaStyles = generatedStyleSchema.styles as Array<{ name: string; parser_name?: string }>;
+const schemaStyles = generatedStyleSchema.styles as unknown as Array<{ name: string; parser_name?: string }>;
 const UI_STYLE_TO_PARSER_STYLE: Record<string, string> = Object.fromEntries(
   schemaStyles.map((style) => [style.name, style.parser_name ?? style.name]),
 );

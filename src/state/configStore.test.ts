@@ -11,7 +11,7 @@ const serialManagerMock = vi.hoisted(() => ({
   readIniBank: vi.fn<(bank: 'blade_in' | 'blade_out') => Promise<string>>(),
   writeIniBank: vi.fn<(bank: 'blade_in' | 'blade_out', content: string) => Promise<boolean>>(),
   getHardwareProfile: vi.fn<
-    () => Promise<{ numBlades: number; numButtons: number; hasBladeDetect: boolean }>
+    () => Promise<{ numBlades: number; numButtons: number; hasBladeDetect: boolean; bladeLengths?: number[]; maxVolume?: number }>
   >(),
   listFonts: vi.fn<() => Promise<string[]>>(),
   listTracks: vi.fn<(font: string) => Promise<string[]>>(),
@@ -175,6 +175,7 @@ describe('configStore save lifecycle', () => {
       numButtons: 2,
       hasBladeDetect: true,
       bladeLengths: [144, 130],
+      maxVolume: 3000,
     });
 
     await useConfigStore.getState().loadSample();
