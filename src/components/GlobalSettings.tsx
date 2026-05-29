@@ -1,6 +1,6 @@
 import React from 'react';
 import { useConfigStore } from '../state/configStore';
-import { Volume2, Zap, RotateCcw } from 'lucide-react';
+import { Volume2, Zap, RotateCcw, Clock, Sun } from 'lucide-react';
 import {
   getGlobalParamValue,
   getGestureEnabled,
@@ -24,6 +24,11 @@ export const GlobalSettings: React.FC = () => {
 
   const volume = getGlobalParamValue(globalSection.params, 'volume') || '1000';
   const clashThreshold = getGlobalParamValue(globalSection.params, 'clash_threshold') || '8';
+  const bladeDimming = getGlobalParamValue(globalSection.params, 'blade_dimming') || '100';
+  const idleOffTime = getGlobalParamValue(globalSection.params, 'idle_off_time') || '600000';
+  const motionTimeout = getGlobalParamValue(globalSection.params, 'motion_timeout') || '900000';
+  const shortClickTimeout = getGlobalParamValue(globalSection.params, 'button_short_click_timeout') || '500';
+  const doubleClickTimeout = getGlobalParamValue(globalSection.params, 'button_double_click_timeout') || '500';
 
   return (
     <div className="global-settings" style={{ padding: '40px', maxWidth: '1000px', margin: '0 auto' }}>
@@ -66,6 +71,26 @@ export const GlobalSettings: React.FC = () => {
                 value={clashThreshold} 
                 onChange={(e) => handleParamChange('clash_threshold', e.target.value)}
                 style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-h)', fontSize: '16px' }}
+              />
+            </div>
+        </div>
+
+        {/* Blade Card */}
+        <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', padding: '25px', borderRadius: '12px', boxShadow: 'var(--shadow)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+            <Sun size={20} color="var(--accent)" />
+            <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600, textTransform: 'uppercase' }}>Blade</h3>
+          </div>
+          <div className="form-group">
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 500 }}>Overall Brightness (%)</label>
+                <span style={{ fontSize: '14px', fontFamily: 'var(--mono)', color: 'var(--accent)' }}>{bladeDimming}</span>
+              </div>
+              <input 
+                type="range" min="0" max="100" step="1"
+                value={bladeDimming} 
+                onChange={(e) => handleParamChange('blade_dimming', e.target.value)}
+                style={{ width: '100%', accentColor: 'var(--accent)', cursor: 'pointer' }}
               />
             </div>
         </div>
@@ -119,6 +144,55 @@ export const GlobalSettings: React.FC = () => {
               currentParams={globalSection.params}
               onChange={handleParamChange}
             />
+          </div>
+        </div>
+
+        {/* Timing Card */}
+        <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', padding: '25px', borderRadius: '12px', boxShadow: 'var(--shadow)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+            <Clock size={20} color="var(--accent)" />
+            <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600, textTransform: 'uppercase' }}>Timeouts (ms)</h3>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            <div className="form-group">
+              <label style={{ fontSize: '13px', fontWeight: 500, display: 'block', marginBottom: '5px' }}>Idle Off Time</label>
+              <input 
+                type="number" min="0" step="1000"
+                value={idleOffTime} 
+                onChange={(e) => handleParamChange('idle_off_time', e.target.value)}
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-h)', fontSize: '16px' }}
+              />
+            </div>
+            
+            <div className="form-group">
+              <label style={{ fontSize: '13px', fontWeight: 500, display: 'block', marginBottom: '5px' }}>Motion Timeout</label>
+              <input 
+                type="number" min="0" step="1000"
+                value={motionTimeout} 
+                onChange={(e) => handleParamChange('motion_timeout', e.target.value)}
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-h)', fontSize: '16px' }}
+              />
+            </div>
+
+            <div className="form-group">
+              <label style={{ fontSize: '13px', fontWeight: 500, display: 'block', marginBottom: '5px' }}>Short Click</label>
+              <input 
+                type="number" min="50" max="2000" step="10"
+                value={shortClickTimeout} 
+                onChange={(e) => handleParamChange('button_short_click_timeout', e.target.value)}
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-h)', fontSize: '16px' }}
+              />
+            </div>
+
+            <div className="form-group">
+              <label style={{ fontSize: '13px', fontWeight: 500, display: 'block', marginBottom: '5px' }}>Double Click</label>
+              <input 
+                type="number" min="50" max="2000" step="10"
+                value={doubleClickTimeout} 
+                onChange={(e) => handleParamChange('button_double_click_timeout', e.target.value)}
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-h)', fontSize: '16px' }}
+              />
+            </div>
           </div>
         </div>
 
