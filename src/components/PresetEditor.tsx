@@ -185,7 +185,7 @@ const DEFAULT_PARAM_VALUES: Record<string, string> = {
   stab_size: '14000',
   lockup_fade: '100',
   clash_fade: '200',
-  lockup_size: '26000',
+  lockup_size: '12000',
   melt_base: 'Red',
   melt_alt: 'Yellow',
 };
