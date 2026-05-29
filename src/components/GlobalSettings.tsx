@@ -22,7 +22,7 @@ export const GlobalSettings: React.FC = () => {
     updateParam(globalIndex, key, value);
   };
 
-  const volume = getGlobalParamValue(globalSection.params, 'volume') || '80';
+  const volume = getGlobalParamValue(globalSection.params, 'volume') || '1000';
   const clashThreshold = getGlobalParamValue(globalSection.params, 'clash_threshold') || '8';
 
   return (
@@ -42,7 +42,7 @@ export const GlobalSettings: React.FC = () => {
                 <span style={{ fontSize: '14px', fontFamily: 'var(--mono)', color: 'var(--accent)' }}>{volume}</span>
               </div>
               <input 
-                type="range" min="0" max="100" step="1"
+                type="range" min="0" max="3000" step="1"
                 value={volume} 
                 onChange={(e) => handleParamChange('volume', e.target.value)}
                 style={{ width: '100%', accentColor: 'var(--accent)', cursor: 'pointer' }}
