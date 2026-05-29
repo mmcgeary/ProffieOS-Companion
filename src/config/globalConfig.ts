@@ -33,7 +33,10 @@ export function getGestureEnabled(
   }
 
   const legacyFlags = getGlobalParamValue(params, 'gestureflags');
-  if (!legacyFlags) return false;
+  if (!legacyFlags) {
+    // ProffieOS defaults: twist_on and twist_off are enabled by default
+    return key === 'twist_on' || key === 'twist_off';
+  }
 
   const parsed = Number.parseInt(legacyFlags, 10);
   if (!Number.isFinite(parsed)) return false;
