@@ -264,7 +264,8 @@ describe('preset UI integration', () => {
 
   it('does not expose Standard in Base Logic style options', () => {
     render(<PresetEditor />);
-    expect(screen.queryByRole('option', { name: 'Standard' })).toBeNull();
+    const baseLogicSelect = screen.getByLabelText('Base Logic');
+    expect(within(baseLogicSelect).queryByRole('option', { name: 'Standard' })).toBeNull();
   });
 
   
@@ -373,5 +374,30 @@ describe('preset UI integration', () => {
     expect(state.doc?.banks.blade_in.presets[0].blades[0].styleParams?.base_color).toBeUndefined();
     expect(presetSection?.params.blade1_base_color).toBe('Red');
     expect(presetSection?.params['blade1_param.base_color']).toBeUndefined();
+  });
+
+  it('renders selectable layers dropdowns and numeric boundaries', () => {
+    seedStore();
+    render(<PresetEditor />);
+
+    // Verify mode dropdowns are rendered with their appropriate choices
+    const clashModeSelect = screen.getByLabelText('Clash Mode');
+    expect(clashModeSelect).toBeTruthy();
+    expect(within(clashModeSelect).getByRole('option', { name: 'Simple' })).toBeTruthy();
+    expect(within(clashModeSelect).getByRole('option', { name: 'Localized' })).toBeTruthy();
+
+    // Verify numeric input is rendered with helper bounds range
+    const clashWidthInput = screen.getByLabelText('Clash Width');
+    expect(clashWidthInput).toBeTruthy();
+    expect(screen.getByText('Range: 0 - 100')).toBeTruthy();
+
+    // Update state via changes
+    fireEvent.change(clashModeSelect, { target: { value: 'localized' } });
+    fireEvent.change(clashWidthInput, { target: { value: '75' } });
+
+    const state = useConfigStore.getState().doc?.banks.blade_in.presets[0];
+    const blade1 = state?.blades[0];
+    expect(blade1?.params.clash_mode).toBe('localized');
+    expect(blade1?.params.clash_width).toBe('75');
   });
 });

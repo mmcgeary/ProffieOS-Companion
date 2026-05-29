@@ -10,6 +10,7 @@ import {
   OFF_MODE_OPTIONS,
   getOffStateValue,
   getSchemaControlsForStyle,
+  STYLE_TUNING_ARGS,
 } from './styleTuningConfig';
 
 const ColorInput = ({
@@ -73,6 +74,35 @@ const ColorInput = ({
       )}
     </div>
   );
+};
+
+const SCHEMA_MODE_OPTIONS: Record<string, readonly { value: string; label: string }[]> = {
+  clash_mode: [
+    { value: 'responsive', label: 'Responsive' },
+    { value: 'simple', label: 'Simple' },
+    { value: 'localized', label: 'Localized' },
+  ],
+  blast_mode: [
+    { value: 'responsive', label: 'Responsive' },
+    { value: 'split_wave', label: 'Split Wave' },
+    { value: 'fade', label: 'Fade' },
+    { value: 'fadeout', label: 'Fadeout' },
+    { value: 'original', label: 'Original' },
+  ],
+  lockup_mode: [
+    { value: 'responsive', label: 'Responsive' },
+    { value: 'standard', label: 'Standard' },
+  ],
+  ignition_mode: [
+    { value: 'wipe', label: 'Wipe' },
+    { value: 'fade', label: 'Fade' },
+    { value: 'spark', label: 'Spark' },
+  ],
+  retraction_mode: [
+    { value: 'wipe', label: 'Wipe' },
+    { value: 'fade', label: 'Fade' },
+    { value: 'spark', label: 'Spark' },
+  ],
 };
 
 const BUILTIN_STYLES = [
@@ -154,6 +184,26 @@ const DIRECT_SCHEMA_PARAM_KEYS = new Set([
   'ignition_time',
   'retraction_time',
   'off_color',
+  // Selectable layer keys & style tunings
+  'clash_mode',
+  'blast_mode',
+  'lockup_mode',
+  'ignition_mode',
+  'retraction_mode',
+  'clash_width',
+  'blast_size',
+  'blast_speed',
+  'spark_color',
+  'spark_size',
+  'drag_size',
+  'melt_size',
+  'stab_size',
+  'off_option',
+  'melt_base',
+  'melt_alt',
+  'lockup_fade',
+  'clash_fade',
+  'lockup_size',
 ]);
 
 const SCHEMA_CONTROL_INPUT_STYLE: React.CSSProperties = {
@@ -651,8 +701,10 @@ export const PresetEditor: React.FC = () => {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div style={{ gridColumn: '1 / -1' }}>
-                <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 500 }}>Base Logic</label>
+                <label htmlFor="base-logic-select" style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 500 }}>Base Logic</label>
                 <select
+                  id="base-logic-select"
+                  aria-label="Base Logic"
                   value={selectedBlade.style || 'audio_flicker'}
                   onChange={(event) => handleBladeFieldChange('style', event.target.value)}
                   style={{
@@ -686,17 +738,60 @@ export const PresetEditor: React.FC = () => {
                             value={getSchemaControlValue(ctrl.key)}
                             onChange={(val) => handleSchemaControlChange(ctrl.key, val)}
                           />
+                        ) : SCHEMA_MODE_OPTIONS[ctrl.key] ? (
+                          <div>
+                            <label htmlFor={`control-${ctrl.key}`} style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 500 }}>
+                              {ctrl.label}
+                            </label>
+                            <select
+                              id={`control-${ctrl.key}`}
+                              aria-label={ctrl.label}
+                              value={getSchemaControlValue(ctrl.key)}
+                              onChange={(event) => handleSchemaControlChange(ctrl.key, event.target.value)}
+                              style={{
+                                width: '100%',
+                                padding: '10px',
+                                borderRadius: '6px',
+                                border: '1px solid var(--border)',
+                                background: 'var(--bg)',
+                                color: 'var(--text-h)',
+                              }}
+                            >
+                              {SCHEMA_MODE_OPTIONS[ctrl.key].map((opt) => (
+                                <option key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
                         ) : (
                           <div>
-                            <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 500 }}>
+                            <label htmlFor={`control-${ctrl.key}`} style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 500 }}>
                               {ctrl.label}
                             </label>
                             <input
-                              type="text"
+                              id={`control-${ctrl.key}`}
+                              aria-label={ctrl.label}
+                              type={STYLE_TUNING_ARGS.some(arg => arg.key === ctrl.key) ? "number" : "text"}
                               value={getSchemaControlValue(ctrl.key)}
                               onChange={(event) => handleSchemaControlChange(ctrl.key, event.target.value)}
                               style={SCHEMA_CONTROL_INPUT_STYLE}
+                              {...(STYLE_TUNING_ARGS.some(arg => arg.key === ctrl.key)
+                                ? {
+                                    min: STYLE_TUNING_ARGS.find(arg => arg.key === ctrl.key)!.min,
+                                    max: STYLE_TUNING_ARGS.find(arg => arg.key === ctrl.key)!.max,
+                                    step: STYLE_TUNING_ARGS.find(arg => arg.key === ctrl.key)!.step,
+                                  }
+                                : {})}
                             />
+                            {(() => {
+                              const tuning = STYLE_TUNING_ARGS.find(arg => arg.key === ctrl.key);
+                              return tuning ? (
+                                <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>
+                                  Range: {tuning.min} - {tuning.max}
+                                </span>
+                              ) : null;
+                            })()}
                           </div>
                         )}
                       </React.Fragment>
@@ -719,17 +814,60 @@ export const PresetEditor: React.FC = () => {
                             value={getSchemaControlValue(ctrl.key)}
                             onChange={(val) => handleSchemaControlChange(ctrl.key, val)}
                           />
+                        ) : SCHEMA_MODE_OPTIONS[ctrl.key] ? (
+                          <div>
+                            <label htmlFor={`control-${ctrl.key}`} style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 500 }}>
+                              {ctrl.label}
+                            </label>
+                            <select
+                              id={`control-${ctrl.key}`}
+                              aria-label={ctrl.label}
+                              value={getSchemaControlValue(ctrl.key)}
+                              onChange={(event) => handleSchemaControlChange(ctrl.key, event.target.value)}
+                              style={{
+                                width: '100%',
+                                padding: '10px',
+                                borderRadius: '6px',
+                                border: '1px solid var(--border)',
+                                background: 'var(--bg)',
+                                color: 'var(--text-h)',
+                              }}
+                            >
+                              {SCHEMA_MODE_OPTIONS[ctrl.key].map((opt) => (
+                                <option key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
                         ) : (
                           <div>
-                            <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 500 }}>
+                            <label htmlFor={`control-${ctrl.key}`} style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 500 }}>
                               {ctrl.label}
                             </label>
                             <input
-                              type="text"
+                              id={`control-${ctrl.key}`}
+                              aria-label={ctrl.label}
+                              type={STYLE_TUNING_ARGS.some(arg => arg.key === ctrl.key) ? "number" : "text"}
                               value={getSchemaControlValue(ctrl.key)}
                               onChange={(event) => handleSchemaControlChange(ctrl.key, event.target.value)}
                               style={SCHEMA_CONTROL_INPUT_STYLE}
+                              {...(STYLE_TUNING_ARGS.some(arg => arg.key === ctrl.key)
+                                ? {
+                                    min: STYLE_TUNING_ARGS.find(arg => arg.key === ctrl.key)!.min,
+                                    max: STYLE_TUNING_ARGS.find(arg => arg.key === ctrl.key)!.max,
+                                    step: STYLE_TUNING_ARGS.find(arg => arg.key === ctrl.key)!.step,
+                                  }
+                                : {})}
                             />
+                            {(() => {
+                              const tuning = STYLE_TUNING_ARGS.find(arg => arg.key === ctrl.key);
+                              return tuning ? (
+                                <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>
+                                  Range: {tuning.min} - {tuning.max}
+                                </span>
+                              ) : null;
+                            })()}
                           </div>
                         )}
                       </React.Fragment>
