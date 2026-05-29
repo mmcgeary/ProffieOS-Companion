@@ -183,6 +183,11 @@ const DEFAULT_PARAM_VALUES: Record<string, string> = {
   drag_size: '2000',
   melt_size: '4000',
   stab_size: '14000',
+  lockup_fade: '100',
+  clash_fade: '200',
+  lockup_size: '26000',
+  melt_base: 'Red',
+  melt_alt: 'Yellow',
 };
 
 const DIRECT_SCHEMA_PARAM_KEYS = new Set([
