@@ -169,7 +169,20 @@ const DEFAULT_PARAM_VALUES: Record<string, string> = {
   inout_blink_ms: '50',
   inout_blink_rate: '50',
   inout_blink_duty: '16000',
-  inout_pulse_rate: '1200'
+  inout_pulse_rate: '1200',
+  clash_mode: 'responsive',
+  blast_mode: 'responsive',
+  lockup_mode: 'responsive',
+  ignition_mode: 'wipe',
+  retraction_mode: 'wipe',
+  clash_width: '50',
+  blast_size: '2000',
+  blast_speed: '400',
+  spark_color: 'White',
+  spark_size: '2000',
+  drag_size: '2000',
+  melt_size: '4000',
+  stab_size: '14000',
 };
 
 const DIRECT_SCHEMA_PARAM_KEYS = new Set([

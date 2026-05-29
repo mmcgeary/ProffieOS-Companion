@@ -36,7 +36,7 @@ const EXPECTED_STYLE_TUNING_METADATA = [
   { key: 'fire_cooling', min: 0, max: 255, defaultValue: 55 },
   { key: 'rainbow_speed', min: 1, max: 20000, defaultValue: 800 },
   { key: 'clash_width', min: 0, max: 100, defaultValue: 50 },
-  { key: 'blast_size', min: 0, max: 32768, defaultValue: 100 },
+  { key: 'blast_size', min: 0, max: 32768, defaultValue: 2000 },
   { key: 'blast_speed', min: 10, max: 5000, defaultValue: 400 },
   { key: 'spark_size', min: 0, max: 32768, defaultValue: 2000 },
   { key: 'drag_size', min: 0, max: 32768, defaultValue: 2000 },
