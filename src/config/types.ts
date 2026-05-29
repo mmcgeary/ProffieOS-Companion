@@ -20,6 +20,7 @@ export interface ConfigDocument {
     numButtons: number;
     hasBladeDetect?: boolean;
     bladeLengths?: number[];
+    maxVolume?: number;
   };
   shared: {
     global: Record<string, string>;

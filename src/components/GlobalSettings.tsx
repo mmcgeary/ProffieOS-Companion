@@ -8,7 +8,7 @@ import {
 } from '../config/globalConfig';
 
 export const GlobalSettings: React.FC = () => {
-  const { sections, updateParam } = useConfigStore();
+  const { sections, updateParam, doc } = useConfigStore();
   const globalSection = sections.find(s => s.name.toLowerCase() === 'global');
   const globalIndex = sections.findIndex(s => s.name.toLowerCase() === 'global');
 
@@ -22,7 +22,11 @@ export const GlobalSettings: React.FC = () => {
     updateParam(globalIndex, key, value);
   };
 
-  const volume = getGlobalParamValue(globalSection.params, 'volume') || '1000';
+  const rawVolume = parseInt(getGlobalParamValue(globalSection.params, 'volume') || '1000', 10);
+  const maxVolume = doc?.hardwareProfile.maxVolume ?? 3000;
+  // If the parsed volume is higher than maxVolume, show maxVolume in the UI since the board will clamp it
+  const volume = Math.min(rawVolume, maxVolume).toString();
+
   const clashThreshold = getGlobalParamValue(globalSection.params, 'clash_threshold') || '8';
   const bladeDimming = getGlobalParamValue(globalSection.params, 'blade_dimming') || '100';
   const idleOffTime = getGlobalParamValue(globalSection.params, 'idle_off_time') || '600000';
@@ -47,7 +51,7 @@ export const GlobalSettings: React.FC = () => {
                 <span style={{ fontSize: '14px', fontFamily: 'var(--mono)', color: 'var(--accent)' }}>{volume}</span>
               </div>
               <input 
-                type="range" min="0" max="3000" step="1"
+                type="range" min="0" max={maxVolume} step="1"
                 value={volume} 
                 onChange={(e) => handleParamChange('volume', e.target.value)}
                 style={{ width: '100%', accentColor: 'var(--accent)', cursor: 'pointer' }}

@@ -26,6 +26,7 @@ const HW_PROFILE_NUM_BLADE_KEYS = new Set(['num_blades', 'numblades']);
 const HW_PROFILE_NUM_BUTTON_KEYS = new Set(['num_buttons', 'numbuttons']);
 const HW_PROFILE_BLADE_DETECT_STATE_KEYS = new Set(['blade_detect']);
 const HW_PROFILE_BLADE_DETECT_CAPABILITY_KEYS = new Set(['has_blade_detect', 'hasbladedetect']);
+const HW_PROFILE_MAX_VOLUME_KEYS = new Set(['max_volume', 'maxvolume']);
 const TRUTHY_VALUES = new Set(['1', 'true', 'yes', 'on']);
 const FALSY_VALUES = new Set(['0', 'false', 'no', 'off']);
 
@@ -56,6 +57,7 @@ const parseHardwareProfile = (lines: string[]): ParsedHardwareProfile => {
   let numBlades: number | null = null;
   let numButtons: number | null = null;
   let hasBladeDetect: boolean | null = null;
+  let maxVolume: number | null = null;
   let matchedProfileToken = false;
   const bladeLengths: number[] = [];
 
@@ -115,6 +117,13 @@ const parseHardwareProfile = (lines: string[]): ParsedHardwareProfile => {
           return;
         }
 
+        if (HW_PROFILE_MAX_VOLUME_KEYS.has(key)) {
+          matchedProfileToken = true;
+          const parsed = parsePositiveInteger(value);
+          if (parsed !== null) maxVolume = parsed;
+          return;
+        }
+
         if (key.startsWith('blade') && key.endsWith('_length')) {
           matchedProfileToken = true;
           const bladeNum = parseInt(key.slice(5, -7), 10);
@@ -134,6 +143,7 @@ const parseHardwareProfile = (lines: string[]): ParsedHardwareProfile => {
     numButtons: numButtons ?? 1,
     hasBladeDetect: hasBladeDetect ?? undefined,
     bladeLengths,
+    maxVolume: maxVolume ?? undefined,
     matchedProfileToken,
   };
 };
