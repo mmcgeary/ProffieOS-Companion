@@ -78,6 +78,58 @@ export const generatedStyleSchema = {
         {
           "key": "melt_alt",
           "arg_symbol": "MELT_ALT_ARG"
+        },
+        {
+          "key": "clash_mode",
+          "arg_symbol": "CLASH_MODE_ARG"
+        },
+        {
+          "key": "blast_mode",
+          "arg_symbol": "BLAST_MODE_ARG"
+        },
+        {
+          "key": "lockup_mode",
+          "arg_symbol": "LOCKUP_MODE_ARG"
+        },
+        {
+          "key": "ignition_mode",
+          "arg_symbol": "IGNITION_MODE_ARG"
+        },
+        {
+          "key": "retraction_mode",
+          "arg_symbol": "RETRACTION_MODE_ARG"
+        },
+        {
+          "key": "clash_width",
+          "arg_symbol": "CLASH_WIDTH_ARG"
+        },
+        {
+          "key": "blast_size",
+          "arg_symbol": "BLAST_SIZE_ARG"
+        },
+        {
+          "key": "blast_speed",
+          "arg_symbol": "BLAST_SPEED_ARG"
+        },
+        {
+          "key": "spark_color",
+          "arg_symbol": "SPARK_COLOR_ARG"
+        },
+        {
+          "key": "spark_size",
+          "arg_symbol": "SPARK_SIZE_ARG"
+        },
+        {
+          "key": "drag_size",
+          "arg_symbol": "DRAG_SIZE_ARG"
+        },
+        {
+          "key": "melt_size",
+          "arg_symbol": "MELT_SIZE_ARG"
+        },
+        {
+          "key": "stab_size",
+          "arg_symbol": "MELT_SIZE_ARG"
         }
       ]
     },
