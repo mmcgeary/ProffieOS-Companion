@@ -42,6 +42,20 @@ const CORE_STYLE_PARAM_KEYS = new Set([
   'lockup_fade',
   'clash_fade',
   'lockup_size',
+  // Selectable layer keys
+  'clash_mode',
+  'blast_mode',
+  'lockup_mode',
+  'ignition_mode',
+  'retraction_mode',
+  'clash_width',
+  'blast_size',
+  'blast_speed',
+  'spark_color',
+  'spark_size',
+  'drag_size',
+  'melt_size',
+  'stab_size',
 ]);
 
 // All blade param keys whose values must be R,G,B color strings.
@@ -60,6 +74,7 @@ const COLOR_BLADE_PARAM_KEYS = new Set([
   'off_color',
   'melt_base',
   'melt_alt',
+  'spark_color',
 ]);
 
 const COLOR_FORMAT_RE = /^\d+,\d+,\d+$/;

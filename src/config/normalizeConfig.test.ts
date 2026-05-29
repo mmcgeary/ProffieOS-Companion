@@ -421,4 +421,57 @@ blade2_style=builtin 0 2
     expect(preset?.params.blade1_style).toBe('energy');
     expect(preset?.params.blade2_style).toBe('audio_flicker');
   });
+
+  it('preserves selectable layer keys without any param. prefix in buildBladeInIni', () => {
+    const iniWithSelectableKeys = `[global]
+num_buttons=1
+
+[preset1]
+name=SelectableTest
+font=TestFont
+track=tracks/test.wav
+blade1_style=standard
+blade1_clash_mode=simple
+blade1_blast_mode=simple
+blade1_lockup_mode=simple
+blade1_ignition_mode=simple
+blade1_retraction_mode=simple
+blade1_clash_width=1000
+blade1_blast_size=1200
+blade1_blast_speed=1400
+blade1_spark_color=255,255,0
+blade1_spark_size=1500
+blade1_drag_size=1600
+blade1_melt_size=1700
+blade1_stab_size=1800
+`;
+
+    const doc = normalizeConfig({
+      bladeInIni: iniWithSelectableKeys,
+      bladeOutIni: '',
+      hwProfile: { numBlades: 1, numButtons: 1, hasBladeDetect: false },
+    });
+
+    const rebuilt = parseIni(buildBladeInIni(doc));
+    const preset = rebuilt.find((s) => s.name.toLowerCase() === 'preset1');
+    expect(preset?.params.blade1_clash_mode).toBe('simple');
+    expect(preset?.params.blade1_blast_mode).toBe('simple');
+    expect(preset?.params.blade1_lockup_mode).toBe('simple');
+    expect(preset?.params.blade1_ignition_mode).toBe('simple');
+    expect(preset?.params.blade1_retraction_mode).toBe('simple');
+    expect(preset?.params.blade1_clash_width).toBe('1000');
+    expect(preset?.params.blade1_blast_size).toBe('1200');
+    expect(preset?.params.blade1_blast_speed).toBe('1400');
+    expect(preset?.params.blade1_spark_color).toBe('255,255,0');
+    expect(preset?.params.blade1_spark_size).toBe('1500');
+    expect(preset?.params.blade1_drag_size).toBe('1600');
+    expect(preset?.params.blade1_melt_size).toBe('1700');
+    expect(preset?.params.blade1_stab_size).toBe('1800');
+
+    // And make sure none of them got parameterized with the "param." prefix
+    const keys = Object.keys(preset?.params ?? {});
+    keys.forEach((key) => {
+      expect(key).not.toContain('param.');
+    });
+  });
 });
