@@ -514,6 +514,13 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
         if (!saved) return false;
         set({ saveStatus: 'rebooting', error: null });
         await serialManager.reconnectAfterReset();
+        
+        // Wait 3 seconds to allow ProffieOS to finish Setup() 
+        // before attempting to send the next command over serial
+        if (import.meta.env.MODE !== 'test') {
+          await new Promise((resolve) => setTimeout(resolve, 3000));
+        }
+        
         return true;
       };
 
