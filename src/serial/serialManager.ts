@@ -275,6 +275,14 @@ export class SerialManager {
     await this.cleanupWriter();
     await this.closePortQuietly(port);
 
+    // Wait 2 seconds before attempting to reconnect.
+    // This ensures the OS has enough time to process the USB physical disconnect
+    // caused by the board's NVIC_SystemReset(), so we don't accidentally "reconnect"
+    // to the old, doomed port handle before it disappears.
+    if (import.meta.env.MODE !== 'test') {
+      await sleep(2000);
+    }
+
     const reconnectPorts = [port];
     const knownPorts = new Set<SerialPortLike>(reconnectPorts);
     const refreshAuthorizedPorts = async () => {
